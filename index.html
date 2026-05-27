@@ -845,15 +845,22 @@ async function loadFromCloud() {
   if (!currentUser) return false;
   try {
     showSync('syncing', 'Se încarcă...');
-    const { data, error } = await supa.from('farm_data')
+
+    // timeout de 10 secunde
+    const fetchPromise = supa.from('farm_data')
       .select('data, updated_at')
       .eq('user_id', currentUser.id)
       .single();
 
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 10000)
+    );
+
+    const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+
     if (error && error.code !== 'PGRST116') throw error;
 
     if (data && data.data && data.data.fields) {
-      // cloud are date — le folosim indiferent ce e local
       applyRawState(data.data);
       localStorage.setItem(SK, JSON.stringify(state));
       showSync('synced', 'Sincronizat');
@@ -873,12 +880,12 @@ async function loadFromCloud() {
       }
     }
 
-    // nimic nicăieri — start curat
     hideSync();
     return false;
   } catch(e) {
-    showSync('error', 'Offline — date locale');
-    setTimeout(() => hideSync(), 3000);
+    const msg = e.message === 'timeout' ? 'Timeout — verifică conexiunea' : 'Offline — date locale';
+    showSync('error', msg);
+    setTimeout(() => hideSync(), 4000);
     load();
     return false;
   }
@@ -973,9 +980,8 @@ function onUserLoggedIn(user) {
   const el = document.getElementById('user-email-short');
   if (el) el.textContent = short;
   document.getElementById('auth-screen').style.display = 'none';
-  loadFromCloud().then(() => {
-    initApp();
-  });
+  // initApp se apelează ÎNTOTDEAUNA, indiferent de rezultatul sync
+  loadFromCloud().catch(() => { load(); }).finally(() => { initApp(); });
 }
 
 function initApp() {
