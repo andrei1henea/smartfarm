@@ -500,7 +500,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
     <button class="nav-btn" id="nav-products" onclick="switchView('products')">🏪 Magazie</button>
     <button class="nav-btn" id="nav-machinery" onclick="switchView('machinery')">🚜 Utilaje</button>
     <button class="nav-btn" id="nav-treatments" onclick="switchView('treatments')">📋 Lucrări</button>
-    <button class="nav-btn" id="nav-costs" onclick="switchView('costs')">📊 Costuri</button>
+    <button class="nav-btn" id="nav-harvest" onclick="switchView('harvest')">🌾 Recoltare</button>
+    <button class="nav-btn" id="nav-costs" onclick="switchView('costs')">📈 Profitabilitate</button>
     <button class="nav-btn" id="nav-settings" onclick="switchView('settings')">⚙️ Setări</button>
   </div>
   
@@ -517,6 +518,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
         <div id="multiselect-bar" class="hidden">
           <span id="ms-info">0 parcele · 0.00 ha</span>
           <button class="btn btn-sm btn-green" onclick="openMultiCropForm()">🌱 Schimbă Cultura</button>
+          <button class="btn btn-sm btn-yellow" onclick="openMultiSelectTaskForm()">📅 Planifică</button>
           <button class="btn btn-sm btn-orange" onclick="openMultiSelectTreatmentForm()">📋 Înregistrează Lucrare</button>
           <button class="btn btn-sm btn-gray" onclick="clearMultiSelection()">✕ Golește</button>
         </div>
@@ -564,11 +566,11 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
         <div class="stat-item"><div class="stat-label">FINANCIAR TRATAMENTE</div><div class="stat-val" id="detail-cost" style="color:var(--yellow)"></div></div>
       </div>
       <div>
-        <div class="section-header"><span class="section-title">SARCINI PARCELĂ</span><button class="btn btn-sm btn-yellow" onclick="openTaskForm()">+ Adaugă</button></div>
+        <div class="section-header"><span class="section-title">LUCRĂRI PLANIFICATE</span><button class="btn btn-sm btn-yellow" onclick="openTaskFormForField()">+ Planifică</button></div>
         <div id="detail-tasks-list" class="card-list"></div>
       </div>
       <div>
-        <div class="section-header"><span class="section-title">REGISTRU SUBSTANȚE</span><button class="btn btn-sm btn-blue" onclick="openTreatmentForm()">+ Adaugă</button></div>
+        <div class="section-header"><span class="section-title">REGISTRU LUCRĂRI</span><button class="btn btn-sm btn-blue" onclick="openTreatmentFormForField()">+ Adaugă</button></div>
         <div id="detail-treatments-list" class="card-list"></div>
       </div>
       <button class="btn btn-red" style="margin-top:20px" onclick="deleteCurrentField()">🗑 Șterge definitiv parcela</button>
@@ -622,10 +624,21 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 
     <div id="treatments-view" class="scroll-view" style="display:none">
       <div class="filter-row">
-        <span style="font-size:12px;color:var(--muted);font-weight:700">JURNAL TEHNOLOGIC TRATAMENTE</span>
-        <button class="btn btn-sm btn-blue" onclick="openTreatmentForm()">+ Execută Tratament</button>
+        <span style="font-size:12px;color:var(--muted);font-weight:700">JURNAL LUCRĂRI</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-sm btn-green" onclick="exportAPIA()" title="Export Excel APIA">📊 Export APIA</button>
+          <button class="btn btn-sm btn-blue" onclick="openTreatmentForm()">+ Înregistrează</button>
+        </div>
       </div>
       <div id="treatments-list" class="card-list"></div>
+    </div>
+
+    <div id="harvest-view" class="scroll-view" style="display:none">
+      <div class="filter-row">
+        <span style="font-size:12px;color:var(--muted);font-weight:700;">ÎNREGISTRARE RECOLTĂ</span>
+        <button class="btn btn-sm btn-green" onclick="openHarvestForm()">+ Adaugă recoltă</button>
+      </div>
+      <div id="harvest-list" class="card-list"></div>
     </div>
 
     <div id="costs-view" class="scroll-view" style="display:none">
@@ -634,6 +647,30 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
     </div>
 
     <div id="settings-view" class="scroll-view" style="display:none">
+
+      <div class="culture-manager-box">
+        <span style="font-size:11px;font-weight:800;color:var(--green);letter-spacing:.06em;display:block;margin-bottom:12px;">👤 DATE FERMIER / EXPLOATAȚIE</span>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="two-col">
+            <div><label class="field-label">Nume și prenume</label><input class="field-input" id="farmer-name" placeholder="Ion Popescu" style="background:#fff;"/></div>
+            <div><label class="field-label">CNP / CIF</label><input class="field-input" id="farmer-cnp" placeholder="1234567890123" style="background:#fff;"/></div>
+          </div>
+          <div class="two-col">
+            <div><label class="field-label">Localitate</label><input class="field-input" id="farmer-city" placeholder="Botoșani" style="background:#fff;"/></div>
+            <div><label class="field-label">Județul</label><input class="field-input" id="farmer-county" placeholder="Botoșani" style="background:#fff;"/></div>
+          </div>
+          <div class="two-col">
+            <div><label class="field-label">Adresă</label><input class="field-input" id="farmer-address" placeholder="Str. ..., nr. ..." style="background:#fff;"/></div>
+            <div><label class="field-label">Telefon</label><input class="field-input" id="farmer-phone" placeholder="07xx xxx xxx" style="background:#fff;"/></div>
+          </div>
+          <div class="two-col">
+            <div><label class="field-label">Nr. înregistrare APIA</label><input class="field-input" id="farmer-apia" placeholder="RO..." style="background:#fff;"/></div>
+            <div><label class="field-label">Bancă / IBAN (opțional)</label><input class="field-input" id="farmer-iban" placeholder="RO49AAAA..." style="background:#fff;"/></div>
+          </div>
+          <button class="btn btn-green" onclick="saveFarmerProfile()" style="margin-top:4px;">✓ Salvează datele fermierului</button>
+          <div id="farmer-save-note" style="font-size:11px;color:var(--green);display:none;text-align:center;">✓ Salvat</div>
+        </div>
+      </div>
 
       <div class="culture-manager-box">
         <span style="font-size:11px;font-weight:800;color:var(--orange);letter-spacing:.06em;display:block;margin-bottom:8px;">⛽ PREȚ MOTORINĂ</span>
@@ -777,9 +814,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
       <div style="margin-bottom:10px;">
         <label class="field-label">Parcelă(e) *</label>
         <div id="task-fields-picker" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;min-height:40px;"></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;" id="task-fields-summary">Nicio parcelă selectată</div>
       </div>
       <div class="two-col" style="margin-bottom:10px;">
-        <div><label class="field-label">Dată planificată *</label><input type="date" class="field-input" id="task-due"/></div>
+        <div><label class="field-label">Dată planificată *</label><input type="date" class="field-input" id="task-due" lang="ro" placeholder="ZZ.LL.AAAA"/></div>
         <div><label class="field-label">Prioritate</label>
           <select class="field-input" id="task-priority">
             <option value="Normal">Normal</option>
@@ -809,14 +847,71 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
       </div>
       <div class="two-col" style="margin-bottom:14px;">
         <div><label class="field-label">Stoc disponibil</label><input type="number" class="field-input" id="prod-stock" step="0.01"/></div>
-        <div><label class="field-label">Preț vânzare/U.M. (lei)</label><input type="number" class="field-input" id="prod-price" step="0.01"/></div>
+        <div><label class="field-label">Preț achiziție/U.M. (lei) *</label><input type="number" class="field-input" id="prod-price" step="0.01"/></div>
       </div>
+
+      <!-- Câmpuri îngrășăminte: NPK -->
+      <div id="prod-npk-section" style="display:none;margin-bottom:10px;">
+        <div style="font-size:10px;font-weight:800;color:var(--green);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;">🌿 Conținut nutrienți (%)</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px;">
+          <div><label class="field-label">N — Azot</label><input type="number" class="field-input" id="prod-n" step="0.01" placeholder="0"/></div>
+          <div><label class="field-label">P₂O₅ — Fosfor</label><input type="number" class="field-input" id="prod-p" step="0.01" placeholder="0"/></div>
+          <div><label class="field-label">K₂O — Potasiu</label><input type="number" class="field-input" id="prod-k" step="0.01" placeholder="0"/></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+          <div><label class="field-label">S — Sulf</label><input type="number" class="field-input" id="prod-s" step="0.01" placeholder="0"/></div>
+          <div><label class="field-label">Ca — Calciu</label><input type="number" class="field-input" id="prod-ca" step="0.01" placeholder="0"/></div>
+          <div><label class="field-label">Mg — Magneziu</label><input type="number" class="field-input" id="prod-mg" step="0.01" placeholder="0"/></div>
+        </div>
+      </div>
+
+      <!-- Câmpuri pesticide: doză omologată -->
+      <div id="prod-pest-section" style="display:none;margin-bottom:10px;">
+        <div style="font-size:10px;font-weight:800;color:var(--red);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;">⚠️ Date omologare</div>
+        <div class="two-col">
+          <div><label class="field-label">Doză omologată min (L sau kg/ha)</label><input type="number" class="field-input" id="prod-dose-min" step="0.01" placeholder="ex: 1.5"/></div>
+          <div><label class="field-label">Doză omologată max (L sau kg/ha)</label><input type="number" class="field-input" id="prod-dose-max" step="0.01" placeholder="ex: 2.0"/></div>
+        </div>
+        <div style="margin-top:6px;"><label class="field-label">Substanța activă</label><input class="field-input" id="prod-active-subst" placeholder="ex: Glifosat 360 g/L" style="background:#fff;"/></div>
+      </div>
+
       <div style="margin-bottom:14px;">
-        <label class="field-label">Preț achiziție/U.M. (lei) — opțional</label>
+        <label class="field-label">Preț de referință/U.M. (lei) — opțional</label>
         <input type="number" class="field-input" id="prod-buy-price" step="0.01" placeholder="Prețul la care ai cumpărat"/>
       </div>
       <input type="hidden" id="prod-edit-id"/>
       <div class="modal-actions"><button class="btn btn-purple" style="width:100%;" id="prod-save-btn" onclick="saveProduct()">Salvează în Stoc</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="harvest-modal" style="display:none" onclick="if(event.target===this)hideHarvestForm()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="harvest-modal-title">🌾 Înregistrare Recoltă</div>
+      <button class="modal-close" onclick="hideHarvestForm()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:10px;">
+        <label class="field-label">Parcelă *</label>
+        <select class="field-input" id="harvest-field-id"></select>
+      </div>
+      <div class="two-col" style="margin-bottom:10px;">
+        <div><label class="field-label">Data recoltării *</label><input type="date" class="field-input" id="harvest-date" lang="ro"/></div>
+        <div><label class="field-label">Cultura recoltată</label><input class="field-input" id="harvest-crop" readonly style="background:var(--surface2);color:var(--muted);"/></div>
+      </div>
+      <div class="two-col" style="margin-bottom:10px;">
+        <div><label class="field-label">Producție totală (tone) *</label><input type="number" class="field-input" id="harvest-tons" step="0.01" placeholder="ex: 42.50" oninput="updateHarvestCalc()"/></div>
+        <div><label class="field-label">Umiditate (%)</label><input type="number" class="field-input" id="harvest-humidity" step="0.1" placeholder="ex: 14.5" oninput="updateHarvestCalc()"/></div>
+      </div>
+      <div class="two-col" style="margin-bottom:10px;">
+        <div><label class="field-label">Preț vânzare (lei/tonă) *</label><input type="number" class="field-input" id="harvest-price" step="0.01" placeholder="ex: 1250" oninput="updateHarvestCalc()"/></div>
+        <div><label class="field-label">Cumpărător / Destinație</label><input class="field-input" id="harvest-buyer" placeholder="ex: Cerealcom SA"/></div>
+      </div>
+      <div style="background:var(--green-soft);border:1px solid #bbf7d0;border-radius:8px;padding:10px;margin-bottom:10px;font-size:12px;" id="harvest-calc">Introdu producția și prețul...</div>
+      <div style="margin-bottom:14px;"><label class="field-label">Observații</label><input class="field-input" id="harvest-notes" placeholder="Nr. factură, cantitate reținută etc."/></div>
+      <input type="hidden" id="harvest-edit-id"/>
+      <button class="btn btn-green" style="width:100%;padding:12px;" onclick="saveHarvest()">✓ Înregistrează Recolta</button>
     </div>
   </div>
 </div>
@@ -856,9 +951,9 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
         <div>
           <label class="field-label">Perioadă lucrare *</label>
           <div style="display:flex;gap:6px;align-items:center;">
-            <input type="date" class="field-input" id="treat-date" style="flex:1;"/>
+            <input type="date" class="field-input" id="treat-date" style="flex:1;" lang="ro"/>
             <span style="font-size:11px;color:var(--muted);flex-shrink:0;">până</span>
-            <input type="date" class="field-input" id="treat-date-end" style="flex:1;"/>
+            <input type="date" class="field-input" id="treat-date-end" style="flex:1;" lang="ro"/>
           </div>
         </div>
         <div>
@@ -909,10 +1004,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="font-size:13px;">⛽</span>
           <div style="flex:1;">
-            <label class="field-label">Motorină (litri)</label>
-            <input type="number" class="field-input" id="treat-fuel-liters" step="0.1" placeholder="0" oninput="updateTreatCalc()"/>
+            <label class="field-label">Motorină (litri / ha normă)</label>
+            <input type="number" class="field-input" id="treat-fuel-liters" step="0.1" placeholder="ex: 12" oninput="updateTreatCalc()"/>
           </div>
-          <div style="font-size:11px;color:var(--muted);text-align:right;flex-shrink:0;" id="fuel-cost-preview">—</div>
+          <div style="font-size:11px;color:var(--muted);text-align:right;flex-shrink:0;min-width:80px;" id="fuel-cost-preview">—</div>
         </div>
         <input type="hidden" id="treat-fuel-price"/>
       </div>
@@ -962,6 +1057,8 @@ let state = {
   productUnits: [...DEFAULT_PRODUCT_UNITS],
   workTypes: [...DEFAULT_WORK_TYPES],
   dieselPrice: DEFAULT_DIESEL_PRICE,
+  farmer: {},
+  harvests: {},
   years: [],
   activeYear: null,
   yearData: {}
@@ -999,6 +1096,8 @@ let selectedFieldIds = new Set();
 function gid(){return Math.random().toString(36).substr(2,9)}
 function fmt(n){return Number(n||0).toLocaleString('ro-RO',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function fmtN(n,d=2){return Number(n||0).toFixed(d)}
+function fmtDate(s){if(!s)return '';const p=s.split('-');return p.length===3?p[2]+'.'+p[1]+'.'+p[0]:s;}
+function fmtPeriod(s,e){const ds=fmtDate(s);const de=fmtDate(e);if(!ds)return '';return de&&de!==ds?ds+' — '+de:ds;}
 
 // ── SAVE / LOAD ───────────────────────────────────────────────────────────────
 function save() {
@@ -1041,6 +1140,8 @@ function applyRawState(raw) {
   if (!state.workTypes || !state.workTypes.length) state.workTypes = [...DEFAULT_WORK_TYPES];
   if (!state.machinery) state.machinery = [];
   if (!state.dieselPrice) state.dieselPrice = DEFAULT_DIESEL_PRICE;
+  if (!state.farmer) state.farmer = {};
+  if (!state.harvests) state.harvests = {};
   if (!state.years) state.years = [];
   if (!state.yearData) state.yearData = {};
   if (!state.activeYear && state.years.length) state.activeYear = state.years[0].id;
@@ -1207,8 +1308,32 @@ function onUserLoggedIn(user) {
 }
 
 
+function saveFarmerProfile() {
+  state.farmer = {
+    name: document.getElementById('farmer-name').value.trim(),
+    cnp: document.getElementById('farmer-cnp').value.trim(),
+    city: document.getElementById('farmer-city').value.trim(),
+    county: document.getElementById('farmer-county').value.trim(),
+    address: document.getElementById('farmer-address').value.trim(),
+    phone: document.getElementById('farmer-phone').value.trim(),
+    apia: document.getElementById('farmer-apia').value.trim(),
+    iban: document.getElementById('farmer-iban').value.trim()
+  };
+  save();
+  const note = document.getElementById('farmer-save-note');
+  if (note) { note.style.display = 'block'; setTimeout(() => note.style.display = 'none', 2000); }
+}
+
+function loadFarmerProfile() {
+  const f = state.farmer || {};
+  const fields = ['name','cnp','city','county','address','phone','apia','iban'];
+  fields.forEach(k => {
+    const el = document.getElementById('farmer-' + k);
+    if (el) el.value = f[k] || '';
+  });
+}
+
 function saveDieselPrice() {
-  const val = Number(document.getElementById('diesel-price-input').value);
   if (!val || val <= 0) return;
   state.dieselPrice = val;
   save();
@@ -1279,6 +1404,7 @@ function switchView(view) {
   document.getElementById('products-view').style.display = view === 'products' ? 'flex' : 'none';
   document.getElementById('machinery-view').style.display = view === 'machinery' ? 'flex' : 'none';
   document.getElementById('treatments-view').style.display = view === 'treatments' ? 'flex' : 'none';
+  document.getElementById('harvest-view').style.display = view === 'harvest' ? 'flex' : 'none';
   document.getElementById('costs-view').style.display = view === 'costs' ? 'flex' : 'none';
   document.getElementById('settings-view').style.display = view === 'settings' ? 'flex' : 'none';
 
@@ -1290,11 +1416,13 @@ function switchView(view) {
     else if (view === 'products') { renderProductsView(); }
     else if (view === 'machinery') { renderMachineryView(); }
     else if (view === 'treatments') { renderTreatmentsView(); }
+    else if (view === 'harvest') { renderHarvestView(); }
     else if (view === 'costs') renderCostsView();
     else if (view === 'settings') { renderCulturesPanel(); renderProductCategoriesPanel(); renderProductUnitsPanel(); renderWorkTypesPanel();
     // init diesel price
     const dpInput = document.getElementById('diesel-price-input');
     if (dpInput) dpInput.value = state.dieselPrice || DEFAULT_DIESEL_PRICE;
+    loadFarmerProfile();
     const br = document.getElementById('btn-reset-settings'); if(br) br.style.display = state.fields.length ? 'block' : 'none'; }
   }
 }
@@ -1636,12 +1764,13 @@ function updateTreatCalc() {
     const cost = dose * area * (p.pricePerUnit || 0);
     return { productName: p.name, unit: p.unit, dose, area, cost };
   }).filter(Boolean);
-  const fuelL = Number(document.getElementById('treat-fuel-liters') && document.getElementById('treat-fuel-liters').value) || 0;
+  const fuelNorm = Number(document.getElementById('treat-fuel-liters') && document.getElementById('treat-fuel-liters').value) || 0;
+  const fuelL = fuelNorm * area; // litri total = normă/ha × suprafață
   const dieselP = state.dieselPrice || DEFAULT_DIESEL_PRICE;
   const fuelCost = fuelL * dieselP;
   // update fuel cost preview
   const fuelPreview = document.getElementById('fuel-cost-preview');
-  if (fuelPreview) fuelPreview.textContent = fuelL > 0 ? fmtN(fuelL,1) + 'L × ' + dieselP + ' lei = ' + fmt(fuelCost) + ' lei' : '—';
+  if (fuelPreview) fuelPreview.textContent = fuelNorm > 0 && area > 0 ? fmtN(fuelNorm,1) + 'L/ha × ' + fmtN(area,2) + 'ha = ' + fmtN(fuelL,1) + 'L → ' + fmt(fuelCost) + ' lei' : (fuelNorm > 0 ? fmtN(fuelNorm,1) + ' L/ha' : '—');
   // also set hidden fuel price field
   const fpEl = document.getElementById('treat-fuel-price');
   if (fpEl) fpEl.value = dieselP;
@@ -2382,6 +2511,7 @@ function renderTasksView() {
     const dateColor = isExpired ? 'var(--red)' : isToday ? 'var(--amber)' : 'var(--muted)';
     const card = document.createElement('div');
     card.className = 'task-card';
+    const totalTaskHa = fieldIds.reduce(function(s,id){var f=state.fields.find(function(x){return x.id===id;});return s+(Number(f&&f.areaHectares)||0);},0);
     card.style.borderLeftColor = priorityColor;
     card.innerHTML =
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
@@ -2392,8 +2522,8 @@ function renderTasksView() {
             (t.status === 'Finalizat' ? '<span style="font-size:10px;background:#dcfce7;color:var(--green);padding:1px 6px;border-radius:10px;font-weight:700;">✓ Executat</span>' : '') +
           '</div>' +
           '<div style="font-size:11px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;">' +
-            '<span>📍 ' + (fieldNames.join(', ')||'—') + '</span>' +
-            (t.dueDate ? '<span style="color:' + dateColor + ';font-weight:700;">' + (isExpired?'⚠️ ':'') + '📅 ' + t.dueDate + '</span>' : '') +
+            '<span>📍 ' + (fieldNames.join(', ')||'—') + (totalTaskHa > 0 ? ' · <strong>' + fmtN(totalTaskHa,2) + ' ha</strong>' : '') + '</span>' +
+            (t.dueDate ? '<span style="color:' + dateColor + ';font-weight:700;">' + (isExpired?'⚠️ ':'') + '📅 ' + fmtDate(t.dueDate) + '</span>' : '') +
           '</div>' +
           (t.notes ? '<div style="font-size:11px;color:var(--dim);margin-top:3px;font-style:italic;">' + t.notes + '</div>' : '') +
         '</div>' +
@@ -2409,28 +2539,63 @@ function renderTasksView() {
   });
 }
 
+function openTaskFormForField() {
+  openTaskForm(selectedFieldId ? [selectedFieldId] : []);
+}
+
 function renderDetailTasks(fieldId) {
   const root = document.getElementById('detail-tasks-list'); if (!root) return;
   root.innerHTML = '';
   const d = yd();
   const today = new Date().toISOString().split('T')[0];
-  const list = (d ? d.tasks : []).filter(t => (t.fieldIds||[t.fieldId]).includes(fieldId) && t.status !== 'Finalizat');
-  if (!list.length) { root.innerHTML = '<div class="no-data">Nicio lucrare planificata.</div>'; return; }
+  const list = (d ? d.tasks : []).filter(t =>
+    (t.fieldIds || [t.fieldId]).includes(fieldId) && t.status !== 'Finalizat'
+  ).sort((a, b) => (a.dueDate||'9999').localeCompare(b.dueDate||'9999'));
+
+  if (!list.length) {
+    root.innerHTML = '<div class="no-data">Nicio lucrare planificată.</div>';
+    return;
+  }
+
   list.forEach(t => {
     const isExpired = t.dueDate && t.dueDate < today;
-    const color = t.priority === 'Urgent' ? 'var(--red)' : isExpired ? 'var(--amber)' : 'var(--green)';
-    root.innerHTML += '<div class="task-card" style="border-left-color:' + color + ';">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-        '<div><strong style="font-size:12px;">' + (t.type||'Lucrare') + '</strong>' +
-        (t.dueDate ? '<span style="font-size:11px;color:var(--muted);margin-left:8px;">📅 ' + t.dueDate + '</span>' : '') +
-        (t.priority !== 'Normal' ? '<span style="font-size:10px;color:' + color + ';font-weight:800;margin-left:6px;">' + t.priority + '</span>' : '') +
-        '</div>' +
-        '<button class="btn btn-sm btn-green" onclick="executeTask(\'' + t.id + '\')">▶</button>' +
-      '</div></div>';
+    const isToday = t.dueDate === today;
+    const priorityColor = t.priority === 'Urgent' ? 'var(--red)' : t.priority === 'Ridicat' ? 'var(--amber)' : 'var(--green)';
+    const dateColor = isExpired ? 'var(--red)' : isToday ? 'var(--amber)' : 'var(--muted)';
+    const card = document.createElement('div');
+    card.className = 'task-card';
+    card.style.borderLeftColor = priorityColor;
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <strong style="font-size:12px;">${t.type || 'Lucrare'}</strong>
+            ${t.priority !== 'Normal' ? `<span style="font-size:10px;font-weight:800;color:${priorityColor};">${t.priority}</span>` : ''}
+          </div>
+          ${t.dueDate ? `<div style="font-size:11px;color:${dateColor};font-weight:600;margin-top:2px;">${isExpired ? '⚠️ ' : isToday ? '📅 Azi — ' : '📅 '}${fmtDate(t.dueDate)}</div>` : ''}
+          ${t.notes ? `<div style="font-size:10px;color:var(--dim);font-style:italic;margin-top:2px;">${t.notes}</div>` : ''}
+        </div>
+        <button class="btn btn-sm btn-green" onclick="executeTask('${t.id}')" style="flex-shrink:0;">▶</button>
+      </div>`;
+    root.appendChild(card);
   });
 }
 
 let taskFieldIds = new Set();
+
+function updateTaskFieldSummary() {
+  const summary = document.getElementById('task-fields-summary'); if (!summary) return;
+  const count = taskFieldIds.size;
+  if (!count) { summary.textContent = 'Nicio parcelă selectată'; return; }
+  let totalHa = 0;
+  taskFieldIds.forEach(id => {
+    const f = state.fields.find(x => x.id === id);
+    if (f) totalHa += Number(f.areaHectares) || 0;
+  });
+  summary.textContent = count + ' parcel' + (count > 1 ? 'e' : 'ă') + ' selectat' + (count > 1 ? 'e' : 'ă') + ' · ' + fmtN(totalHa, 2) + ' ha total';
+  summary.style.color = 'var(--green)';
+  summary.style.fontWeight = '700';
+}
 
 function renderTaskFieldPicker(preselect) {
   preselect = preselect || [];
@@ -2441,13 +2606,15 @@ function renderTaskFieldPicker(preselect) {
     const chip = document.createElement('button');
     chip.type = 'button';
     chip.className = 'field-chip-pick' + (taskFieldIds.has(f.id) ? ' selected' : '');
-    chip.textContent = f.name;
+    chip.textContent = f.name + ' (' + fmtN(f.areaHectares, 2) + ' ha)';
     chip.onclick = function() {
       if (taskFieldIds.has(f.id)) taskFieldIds.delete(f.id); else taskFieldIds.add(f.id);
       chip.classList.toggle('selected');
+      updateTaskFieldSummary();
     };
     picker.appendChild(chip);
   });
+  updateTaskFieldSummary();
 }
 
 function openTaskForm(preFieldIds) {
@@ -2654,7 +2821,10 @@ function renderProductsView() {
       const card = document.createElement('div');
       card.className = 'prod-card';
       card.style.cssText = 'display:flex;justify-content:space-between;align-items:center;';
-      card.innerHTML = '<div><strong>' + p.name + '</strong><div style="font-size:11px;color:var(--muted);margin-top:2px">Stoc: <span style="color:var(--text);font-weight:700">' + p.stock + ' ' + p.unit + '</span> &middot; Vanzare: <span style="color:var(--orange);font-weight:700">' + p.pricePerUnit + ' lei/' + p.unit + '</span>' + (p.buyPrice ? ' &middot; Achizitie: <span style="color:var(--blue);font-weight:700">' + p.buyPrice + ' lei/' + p.unit + '</span>' : '') + '</div></div><div style="display:flex;gap:4px;"><button class="btn btn-sm btn-gray" onclick="editProduct(\'' + p.id + '\')">&#9998;</button><button class="btn btn-sm btn-red" onclick="deleteProduct(\'' + p.id + '\')">&#128465;</button></div>';
+      const npkStr = (p.n||p.p||p.k) ? ' &middot; <span style="color:var(--green);font-weight:700;">N'+p.n+' P'+p.p+' K'+p.k+'</span>' : '';
+      const pestStr = p.activeSubst ? ' &middot; <span style="color:var(--muted);">'+p.activeSubst+'</span>' : '';
+      const doseStr = p.doseMin ? ' &middot; Doza: '+p.doseMin+(p.doseMax&&p.doseMax!==p.doseMin?'-'+p.doseMax:'')+' '+p.unit+'/ha' : '';
+      card.innerHTML = '<div><strong>' + p.name + '</strong><div style="font-size:11px;color:var(--muted);margin-top:2px">Stoc: <span style="color:var(--text);font-weight:700">' + p.stock + ' ' + p.unit + '</span> &middot; <span style="color:var(--orange);font-weight:700">' + p.pricePerUnit + ' lei/' + p.unit + '</span>' + npkStr + pestStr + doseStr + '</div></div><div style="display:flex;gap:4px;"><button class="btn btn-sm btn-gray" onclick="editProduct(\'' + p.id + '\')">&#9998;</button><button class="btn btn-sm btn-red" onclick="deleteProduct(\'' + p.id + '\')">&#128465;</button></div>';
       inner.appendChild(card);
     });
     body.appendChild(inner);
@@ -2673,14 +2843,27 @@ function renderProductsView() {
 function openProductForm() {
   populateProdCatSelect();
   populateProdUnitSelect();
-  document.getElementById('prod-name').value = '';
-  document.getElementById('prod-stock').value = '';
-  document.getElementById('prod-price').value = '';
-  document.getElementById('prod-buy-price').value = '';
+  ['prod-name','prod-stock','prod-price','prod-buy-price',
+   'prod-n','prod-p','prod-k','prod-s','prod-ca','prod-mg',
+   'prod-dose-min','prod-dose-max','prod-active-subst'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
   document.getElementById('prod-edit-id').value = '';
   document.getElementById('prod-save-btn').textContent = 'Salveaza in Stoc';
   document.getElementById('product-modal').querySelector('.modal-title').textContent = 'Produs Magazie';
+  updateProductSections();
+  document.getElementById('prod-cat').onchange = updateProductSections;
   document.getElementById('product-modal').style.display = 'flex';
+}
+
+function updateProductSections() {
+  const cat = (document.getElementById('prod-cat').value || '').toLowerCase();
+  const fertCats = ['îngrășământ','ingrasamant','fertiliz','ngr'];
+  const pestCats = ['erbicid','fungicid','insecticid','regulator','pesticid'];
+  const isFert = fertCats.some(c => cat.includes(c));
+  const isPest = pestCats.some(c => cat.includes(c));
+  document.getElementById('prod-npk-section').style.display = isFert ? '' : 'none';
+  document.getElementById('prod-pest-section').style.display = isPest ? '' : 'none';
 }
 function editProduct(id) {
   const p = state.products.find(function(x){return x.id===id;}); if(!p) return;
@@ -2692,19 +2875,88 @@ function editProduct(id) {
   document.getElementById('prod-stock').value = p.stock||'';
   document.getElementById('prod-price').value = p.pricePerUnit||'';
   document.getElementById('prod-buy-price').value = p.buyPrice||'';
+  // NPK
+  document.getElementById('prod-n').value = p.n||'';
+  document.getElementById('prod-p').value = p.p||'';
+  document.getElementById('prod-k').value = p.k||'';
+  document.getElementById('prod-s').value = p.s||'';
+  document.getElementById('prod-ca').value = p.ca||'';
+  document.getElementById('prod-mg').value = p.mg||'';
+  // Pesticide
+  document.getElementById('prod-dose-min').value = p.doseMin||'';
+  document.getElementById('prod-dose-max').value = p.doseMax||'';
+  document.getElementById('prod-active-subst').value = p.activeSubst||'';
   document.getElementById('prod-edit-id').value = id;
   document.getElementById('prod-save-btn').textContent = 'Actualizeaza';
   document.getElementById('product-modal').querySelector('.modal-title').textContent = 'Editeaza Produs';
+  document.getElementById('prod-cat').onchange = updateProductSections;
+  updateProductSections();
   document.getElementById('product-modal').style.display = 'flex';
 }
 function hideProductForm() { document.getElementById('product-modal').style.display = 'none'; }
 function saveProduct() {
   const name = document.getElementById('prod-name').value.trim(); if(!name) return;
   const editId = document.getElementById('prod-edit-id').value;
-  const data = { name, category:document.getElementById('prod-cat').value, unit:document.getElementById('prod-unit').value, stock:Number(document.getElementById('prod-stock').value)||0, pricePerUnit:Number(document.getElementById('prod-price').value)||0, buyPrice:Number(document.getElementById('prod-buy-price').value)||0 };
-  if(editId){ const idx=state.products.findIndex(function(p){return p.id===editId;}); if(idx>=0) state.products[idx]=Object.assign({},state.products[idx],data); }
-  else state.products.push(Object.assign({id:gid()},data));
+  const newPrice = Number(document.getElementById('prod-price').value)||0;
+  const data = {
+    name, category:document.getElementById('prod-cat').value,
+    unit:document.getElementById('prod-unit').value,
+    stock:Number(document.getElementById('prod-stock').value)||0,
+    pricePerUnit:newPrice,
+    buyPrice:Number(document.getElementById('prod-buy-price').value)||0,
+    // NPK
+    n:Number(document.getElementById('prod-n').value)||0,
+    p:Number(document.getElementById('prod-p').value)||0,
+    k:Number(document.getElementById('prod-k').value)||0,
+    s:Number(document.getElementById('prod-s').value)||0,
+    ca:Number(document.getElementById('prod-ca').value)||0,
+    mg:Number(document.getElementById('prod-mg').value)||0,
+    // Pesticide
+    doseMin:Number(document.getElementById('prod-dose-min').value)||0,
+    doseMax:Number(document.getElementById('prod-dose-max').value)||0,
+    activeSubst:document.getElementById('prod-active-subst').value.trim()
+  };
+
+  if (editId) {
+    const idx = state.products.findIndex(function(p){return p.id===editId;});
+    const oldPrice = idx >= 0 ? (state.products[idx].pricePerUnit||0) : 0;
+    if (idx >= 0) state.products[idx] = Object.assign({}, state.products[idx], data);
+
+    // recalculează costurile lucrărilor din ANUL ACTIV dacă prețul s-a schimbat
+    if (newPrice !== oldPrice && state.activeYear) {
+      const ydd = state.yearData[state.activeYear];
+      let updated = 0;
+      if (ydd && ydd.treatments) {
+        ydd.treatments.forEach(function(t) {
+          if (!t.substances) return;
+          let changed = false;
+          t.substances.forEach(function(s) {
+            if (s.prodId === editId) {
+              s.cost = Math.round(s.dose * s.area * newPrice * 100) / 100;
+              s.pricePerUnit = newPrice;
+              changed = true;
+            }
+          });
+          if (changed) {
+            const substCost = t.substances.reduce(function(sum,s){return sum+s.cost;},0);
+            const fuelCost = Number(t.fuelCost)||0;
+            t.totalCost = Math.round((substCost + fuelCost)*100)/100;
+            updated++;
+          }
+        });
+      }
+      if (updated > 0) {
+        showSync('synced', updated + ' lucrări recalculate');
+        setTimeout(hideSync, 3000);
+      }
+    }
+  } else {
+    state.products.push(Object.assign({id:gid()}, data));
+  }
+
   save(); hideProductForm(); renderProductsView();
+  if (currentView === 'costs') renderCostsView();
+  if (currentView === 'treatments') renderTreatmentsView();
 }
 function deleteProduct(id) {
   if(!confirm('Stergi produsul din magazie?')) return;
@@ -2725,7 +2977,7 @@ function renderTreatmentsView() {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
         <div>
           <strong style="font-family:var(--font-display);font-size:13px;">${t.workType || 'Lucrare'}</strong>
-          ${t.date ? `<span style="color:var(--muted);font-size:11px;"> · ${t.date}${t.dateEnd && t.dateEnd !== t.date ? ' — '+t.dateEnd : ''}</span>` : ''}
+          ${t.date ? `<span style="color:var(--muted);font-size:11px;"> · ${fmtPeriod(t.date,t.dateEnd)}</span>` : ''}
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
           <strong style="color:var(--orange);font-size:13px;">${fmt(t.totalCost)} lei</strong>
@@ -2734,17 +2986,96 @@ function renderTreatmentsView() {
       </div>
       <div style="font-size:11px;color:var(--muted);">📍 ${field?.name || '—'}</div>
       ${substLine !== '—' ? `<div style="font-size:11px;color:var(--text);margin-top:3px;">🧪 ${substLine}</div>` : ''}
-      ${t.fuelLiters > 0 ? `<div style="font-size:11px;color:var(--muted);">⛽ ${t.fuelLiters}L · ${fmt(t.fuelCost)} lei</div>` : ''}
+      ${t.fuelLiters > 0 ? `<div style="font-size:11px;color:var(--muted);">⛽ ${t.fuelNorm ? fmtN(t.fuelNorm,1)+' L/ha → ' : ''}${t.fuelLiters}L · ${fmt(t.fuelCost)} lei</div>` : ''}
       ${t.tractorName ? `<div style="font-size:11px;color:var(--orange);">🚜 ${t.tractorName}${t.implementName ? ' + ' + t.implementName : ''}</div>` : (t.implementName ? `<div style="font-size:11px;color:var(--blue);">⚙️ ${t.implementName}</div>` : '')}
       ${t.notes ? `<div style="font-size:11px;color:var(--dim);margin-top:2px;font-style:italic;">${t.notes}</div>` : ''}
     </div>`;
   });
 }
 function renderDetailTreatments(fieldId) {
-  const root = document.getElementById('detail-treatments-list'); if(!root) return; root.innerHTML = '';
-  const d = yd(); const list = d ? d.treatments.filter(t => t.fieldId === fieldId) : [];
-  if(!list.length) { root.innerHTML = '<div class="no-data">Niciun tratament aplicat.</div>'; return; }
-  list.forEach(t => { root.innerHTML += `<div class="treat-card" style="border-left-color:var(--blue)"><strong>${t.productName}</strong> - Doză: ${t.dosePerHa} | Cost: ${t.totalCost} lei</div>`; });
+  const root = document.getElementById('detail-treatments-list'); if (!root) return;
+  root.innerHTML = '';
+  const d = yd();
+  const list = d ? d.treatments.filter(t => t.fieldId === fieldId || (t.fieldIds || []).includes(fieldId)) : [];
+  if (!list.length) { root.innerHTML = '<div class="no-data">Nicio lucrare înregistrată pe această parcelă.</div>'; return; }
+
+  // sortăm descrescător după dată
+  [...list].sort((a, b) => (b.date||'').localeCompare(a.date||'')).forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'treat-card';
+    card.style.borderLeftColor = 'var(--teal)';
+
+    const dateStr = fmtPeriod(t.date, t.dateEnd);
+    const substLines = (t.substances || []).map(s =>
+      `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border-light);">
+        <span style="font-size:11px;color:var(--text);">🧪 ${s.productName} <span style="color:var(--muted)">${s.dose} ${s.unit}/ha</span></span>
+        <span style="font-size:11px;font-weight:700;color:var(--orange);">${fmt(s.cost)} lei</span>
+      </div>`
+    ).join('');
+
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+        <div>
+          <strong style="font-family:var(--font-display);font-size:13px;">${t.workType || 'Lucrare'}</strong>
+          <span style="font-size:11px;color:var(--muted);margin-left:6px;">📅 ${dateStr}</span>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+          <button class="btn btn-sm btn-gray" onclick="editTreatmentFromDetail('${t.id}')">✎</button>
+          <button class="btn btn-sm btn-red" onclick="deleteTreatmentFromDetail('${t.id}','${fieldId}')">🗑</button>
+        </div>
+      </div>
+      ${t.tractorName ? `<div style="font-size:11px;color:var(--orange);margin-bottom:4px;">🚜 ${t.tractorName}${t.implementName ? ' + ' + t.implementName : ''}</div>` : ''}
+      ${substLines ? `<div style="margin:4px 0;">${substLines}</div>` : ''}
+      ${t.fuelLiters > 0 ? `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="font-size:11px;color:var(--muted);">⛽ ${t.fuelNorm ? fmtN(t.fuelNorm,1)+' L/ha → ' : ''}${fmtN(t.fuelLiters,1)} L</span><span style="font-size:11px;font-weight:700;color:var(--orange);">${fmt(t.fuelCost)} lei</span></div>` : ''}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:6px;border-top:1px solid var(--border-light);">
+        ${t.notes ? `<span style="font-size:11px;color:var(--dim);font-style:italic;">${t.notes}</span>` : '<span></span>'}
+        <strong style="font-size:13px;color:var(--green);">${fmt(t.totalCost)} lei</strong>
+      </div>`;
+    root.appendChild(card);
+  });
+
+  // total per parcelă
+  const total = list.reduce((s, t) => s + (Number(t.totalCost)||0), 0);
+  if (total > 0) {
+    const summary = document.createElement('div');
+    summary.style.cssText = 'text-align:right;font-size:12px;font-weight:800;color:var(--orange);padding:6px 2px;';
+    summary.textContent = 'Total parcelă: ' + fmt(total) + ' lei';
+    root.appendChild(summary);
+  }
+}
+
+function openTreatmentFormForField() {
+  openTreatmentForm();
+  if (selectedFieldId) {
+    setTimeout(() => {
+      renderTreatFieldPicker([selectedFieldId]);
+      updateTreatFieldSummary();
+      updateTreatCalc();
+    }, 100);
+  }
+}
+
+function editTreatmentFromDetail(id) {
+  editTreatment(id);
+  // după salvare, revenim la detaliu
+  const origHide = window._origHideTreat;
+  if (!origHide) {
+    window._origHideTreat = hideTreatmentForm;
+    window._pendingReturnField = selectedFieldId;
+  }
+}
+
+function deleteTreatmentFromDetail(treatId, fieldId) {
+  if (!confirm('Ștergi această lucrare?')) return;
+  const d = yd(); if (!d) return;
+  d.treatments = d.treatments.filter(t => t.id !== treatId);
+  save(); renderDetailTreatments(fieldId); updateHeaderStats();
+  // actualizăm și costul din header fișă parcelă
+  const d2 = yd();
+  let totalCost = 0;
+  if (d2) d2.treatments.filter(t => t.fieldId === fieldId).forEach(t => totalCost += (Number(t.totalCost)||0));
+  const costEl = document.getElementById('detail-cost');
+  if (costEl) costEl.textContent = fmt(totalCost) + ' lei';
 }
 // ─── FIELD PICKER ÎN FORMULAR LUCRARE ─────────────────────────────────────────
 let treatSelectedFieldIds = new Set();
@@ -2782,7 +3113,7 @@ function updateTreatFieldSummary() {
   summary.textContent = `${count} parcel${count>1?'e':''} selectat${count>1?'e':''} · ${fmtN(totalHa,2)} ha total`;
   // auto-completăm suprafața dacă nu e modificată manual
   const areaInput = document.getElementById('treat-total-area');
-  if (areaInput && !areaInput.dataset.manual) areaInput.value = fmtN(totalHa, 4);
+  if (areaInput && !areaInput.dataset.manual) areaInput.value = fmtN(totalHa, 2);
 }
 
 function getTreatTotalArea() {
@@ -2838,7 +3169,7 @@ function editTreatment(id) {
     const iSel = document.getElementById('treat-implement');
     if (iSel && t.implementId) iSel.value = t.implementId;
     document.getElementById('treat-notes').value = t.notes||'';
-    document.getElementById('treat-fuel-liters').value = t.fuelLiters||'';
+    document.getElementById('treat-fuel-liters').value = t.fuelNorm || t.fuelLiters || '';
     // repopulate fields
     const fieldIds = t.fieldIds || (t.fieldId ? [t.fieldId] : []);
     renderTreatFieldPicker(fieldIds);
@@ -2858,6 +3189,15 @@ function hideTreatmentForm() {
   document.getElementById('treatment-modal').style.display = 'none';
   const noteEl = document.getElementById('treat-multi-note');
   if (noteEl) noteEl.style.display = 'none';
+  // dacă am deschis din fișa parcelei, re-randăm registrul
+  if (selectedFieldId && document.getElementById('field-detail').style.display !== 'none') {
+    renderDetailTreatments(selectedFieldId);
+    // actualizăm costul total
+    const d = yd(); let totalCost = 0;
+    if (d) d.treatments.filter(t => t.fieldId === selectedFieldId).forEach(t => totalCost += (Number(t.totalCost)||0));
+    const costEl = document.getElementById('detail-cost');
+    if (costEl) costEl.textContent = fmt(totalCost) + ' lei';
+  }
 }
 function saveTreatment() {
   const d = yd(); if (!d) { alert('Selecteaza un an agricol mai intai.'); return; }
@@ -2865,8 +3205,9 @@ function saveTreatment() {
   const editId = document.getElementById('treat-edit-id') ? document.getElementById('treat-edit-id').value : '';
   const totalArea = getTreatTotalArea();
   const substances = getSubstancesData(totalArea);
-  const fuelL = Number(document.getElementById('treat-fuel-liters').value) || 0;
+  const fuelNorm = Number(document.getElementById('treat-fuel-liters').value) || 0;
   const dieselP = state.dieselPrice || DEFAULT_DIESEL_PRICE;
+  const fuelL = fuelNorm * totalArea;
   const fuelCost = fuelL * dieselP;
   const substCost = substances.reduce((s, x) => s + x.cost, 0);
   const totalCost = substCost + fuelCost;
@@ -2886,6 +3227,7 @@ function saveTreatment() {
       id: gid(), date, dateEnd: document.getElementById('treat-date-end') ? document.getElementById('treat-date-end').value : '',
       fieldId, fieldIds: fieldIds, workType, tractorId, tractorName, implementId, implementName, notes,
       substances: substances.map(function(s){return Object.assign({},s,{cost:Math.round(s.cost*prop*100)/100});}),
+      fuelNorm: fuelNorm,
       fuelLiters: Math.round(fuelL * prop * 10)/10, fuelPricePerL: dieselP,
       fuelCost: Math.round(fuelCost * prop * 100)/100,
       totalCost: Math.round(totalCost * prop * 100)/100,
@@ -2899,6 +3241,8 @@ function saveTreatment() {
     d.treatments.push(tRecord);
   });
   save(); hideTreatmentForm(); updateHeaderStats();
+  // scade stocul automat pentru substanțele folosite
+  deductStockForTreatment(substances);
   if (selectedFieldId) openDetail(selectedFieldId); else renderTreatmentsView();
 }
 
@@ -2907,107 +3251,154 @@ function renderCostsView() {
   const treatments = d ? d.treatments : [];
   const activeYearName = state.activeYear ? (state.years.find(y => y.id === state.activeYear)?.name || '') : 'Toți anii';
   const fields = activeFields();
+  const harvests = getYearHarvests();
 
-  // ── COSTURI ──────────────────────────────────────────────────────────────────
-  let totalCost = 0; treatments.forEach(t => totalCost += (Number(t.totalCost)||0));
-  let costsHtml = `<div class="cost-summary"><div class="cost-total">${fmt(totalCost)} lei</div><div class="cost-label">INVESTIȚIE TOTALĂ · ${activeYearName.toUpperCase()}</div></div>`;
+  // ── CALCULE GLOBALE ───────────────────────────────────────────────────────────
+  let totalCost = 0; treatments.forEach(t => totalCost += Number(t.totalCost)||0);
+  let totalVenit = 0; harvests.forEach(h => totalVenit += h.tons * h.price);
+  totalCost = Math.round(totalCost*100)/100;
+  totalVenit = Math.round(totalVenit*100)/100;
+  const profit = Math.round((totalVenit - totalCost)*100)/100;
+  const profitColor = profit >= 0 ? 'var(--green)' : 'var(--red)';
+
+  // ── HEADER PROFITABILITATE ────────────────────────────────────────────────────
+  const costsEl = document.getElementById('costs-content');
+  costsEl.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div class="cost-summary" style="text-align:center;">
+        <div class="cost-total" style="color:var(--red);">${fmt(totalCost)}</div>
+        <div class="cost-label">LEI COSTURI</div>
+      </div>
+      <div class="cost-summary" style="text-align:center;">
+        <div class="cost-total" style="color:var(--blue);">${fmt(totalVenit)}</div>
+        <div class="cost-label">LEI VENITURI</div>
+      </div>
+      <div class="cost-summary" style="text-align:center;border-color:${profit>=0?'#bbf7d0':'#fecaca'};">
+        <div class="cost-total" style="color:${profitColor};">${profit>=0?'+':''}${fmt(profit)}</div>
+        <div class="cost-label">LEI PROFIT NET</div>
+      </div>
+    </div>
+    <div class="cost-label" style="text-align:center;margin-bottom:10px;">${activeYearName.toUpperCase()}</div>`;
+
+  // ── PER PARCELĂ ────────────────────────────────────────────────────────────
   fields.forEach(f => {
-    let fc = 0; treatments.filter(t => t.fieldId === f.id).forEach(t => fc += (Number(t.totalCost)||0));
-    const crop = fieldCrop(f.id).crop;
-    costsHtml += `<div class="field-cost-card"><div><strong>${f.name}</strong> (${crop})</div><div class="field-cost-val">${fmt(fc)} lei</div></div>`;
+    const fc = fieldCrop(f.id);
+    const ha = Number(f.areaHectares)||0;
+    let cost = 0; treatments.filter(t=>t.fieldId===f.id).forEach(t=>cost+=Number(t.totalCost)||0);
+    const harv = harvests.find(h=>h.fieldId===f.id);
+    const venit = harv ? Math.round(harv.tons * harv.price * 100)/100 : 0;
+    const profField = Math.round((venit-cost)*100)/100;
+    const pc = profField>=0?'var(--green)':'var(--red)';
+    costsEl.innerHTML += `<div class="field-cost-card" style="flex-direction:column;align-items:stretch;gap:6px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div><strong>${f.name}</strong> <span style="font-size:11px;color:var(--muted);">${fc.crop} · ${fmtN(ha,2)} ha</span></div>
+        <strong style="color:${pc};font-size:14px;">${profField>=0?'+':''}${fmt(profField)} lei</strong>
+      </div>
+      <div style="display:flex;gap:8px;font-size:11px;">
+        <span style="color:var(--red);">↓ Costuri: ${fmt(cost)} lei${ha>0?' ('+fmt(cost/ha)+'/ha)':''}</span>
+        <span style="color:var(--blue);">↑ Venituri: ${fmt(venit)} lei${harv&&ha>0?' ('+fmtN(harv.tons/ha,2)+' t/ha)':''}</span>
+      </div>
+    </div>`;
   });
-  document.getElementById('costs-content').innerHTML = costsHtml;
 
-  // ── COMPARAȚIE ANI ────────────────────────────────────────────────────────────
+  // ── STATISTICI CULTURI ────────────────────────────────────────────────────────
   const statsEl = document.getElementById('stats-content');
   if (!fields.length) { statsEl.innerHTML = ''; return; }
 
+  // per cultură
+  const byCrop = {};
+  fields.forEach(f => {
+    const ha = Number(f.areaHectares)||0;
+    const fc = fieldCrop(f.id);
+    if (!byCrop[fc.crop]) byCrop[fc.crop] = {ha:0,parcele:0,color:fc.color,cost:0,venit:0};
+    byCrop[fc.crop].ha += ha;
+    byCrop[fc.crop].parcele++;
+    treatments.filter(t=>t.fieldId===f.id).forEach(t=>byCrop[fc.crop].cost+=Number(t.totalCost)||0);
+    const harv = harvests.find(h=>h.fieldId===f.id);
+    if (harv) byCrop[fc.crop].venit += harv.tons * harv.price;
+  });
+  const crops = Object.entries(byCrop).sort((a,b)=>b[1].ha-a[1].ha);
+  const totalHa = crops.reduce((s,[,d])=>s+d.ha,0);
+
+  // comparatie ani
   let compHtml = '';
   if (state.years.length > 1) {
-    const maxCost = Math.max(...state.years.map(y => {
-      let c = 0; const ydd = state.yearData[y.id]; if (ydd) ydd.treatments.forEach(t => c += Number(t.totalCost)||0); return c;
-    }), 1);
+    const maxVal = Math.max(...state.years.map(y => {
+      let c=0, v=0;
+      const yd2 = state.yearData[y.id];
+      if (yd2) yd2.treatments.forEach(t=>c+=Number(t.totalCost)||0);
+      const yh = state.harvests[y.id]||[];
+      yh.forEach(h=>v+=h.tons*h.price);
+      return Math.max(c,v);
+    }),1);
     compHtml = `<div class="cost-summary" style="margin-bottom:4px;">
-      <div class="cost-label" style="margin-bottom:10px;">📊 COMPARAȚIE ANI AGRICOLI</div>
+      <div class="cost-label" style="margin-bottom:10px;">📊 COMPARAȚIE ANI</div>
       ${state.years.map(y => {
-        let c = 0; const ydd = state.yearData[y.id]; if (ydd) ydd.treatments.forEach(t => c += Number(t.totalCost)||0);
-        const pct = c / maxCost * 100;
-        const isActive = y.id === state.activeYear;
-        return `<div style="margin-bottom:8px;">
+        let c=0,v=0;
+        const yd2=state.yearData[y.id]; if(yd2) yd2.treatments.forEach(t=>c+=Number(t.totalCost)||0);
+        const yh=state.harvests[y.id]||[]; yh.forEach(h=>v+=h.tons*h.price);
+        const prof=v-c; const isAct=y.id===state.activeYear;
+        return `<div style="margin-bottom:10px;">
           <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
-            <span style="font-size:12px;font-weight:${isActive?'800':'700'};color:${isActive?'var(--green)':'var(--text)'};">${y.name}${isActive?' ▶':''}</span>
-            <span style="font-size:12px;font-weight:800;color:var(--orange)">${fmt(c)} lei</span>
+            <span style="font-size:12px;font-weight:${isAct?'800':'700'};color:${isAct?'var(--green)':'var(--text)'};">${y.name}${isAct?' ▶':''}</span>
+            <span style="font-size:12px;font-weight:800;color:${prof>=0?'var(--green)':'var(--red)'};">${prof>=0?'+':''}${fmt(Math.round(prof))} lei</span>
           </div>
-          <div style="background:var(--border);border-radius:4px;height:8px;overflow:hidden;">
-            <div style="background:${isActive?'var(--green)':'var(--blue)'};width:${pct}%;height:100%;border-radius:4px;opacity:0.8;"></div>
+          <div style="display:flex;gap:2px;height:8px;">
+            <div style="background:var(--red);width:${c/maxVal*100}%;border-radius:4px 0 0 4px;opacity:.8;" title="Costuri: ${fmt(Math.round(c))} lei"></div>
+            <div style="background:var(--blue);width:${v/maxVal*100}%;border-radius:0 4px 4px 0;opacity:.8;" title="Venituri: ${fmt(Math.round(v))} lei"></div>
+          </div>
+          <div style="display:flex;gap:12px;font-size:10px;margin-top:2px;">
+            <span style="color:var(--red);">↓ ${fmt(Math.round(c))} lei</span>
+            <span style="color:var(--blue);">↑ ${fmt(Math.round(v))} lei</span>
           </div>
         </div>`;
       }).join('')}
     </div>`;
   }
 
-  // ── STRUCTURA CULTURILOR (din anul activ) ────────────────────────────────────
-  const byCrop = {};
-  fields.forEach(f => {
-    const ha = Number(f.areaHectares) || 0;
-    const fc = fieldCrop(f.id);
-    if (!byCrop[fc.crop]) byCrop[fc.crop] = { ha: 0, parcele: 0, color: fc.color, cost: 0 };
-    byCrop[fc.crop].ha += ha;
-    byCrop[fc.crop].parcele++;
-    treatments.filter(t => t.fieldId === f.id).forEach(t => byCrop[fc.crop].cost += (Number(t.totalCost)||0));
+  // donut suprafete
+  const cx=100,cy=100,R=80,r=48;
+  let angle=-Math.PI/2, slices='';
+  crops.forEach(([crop,dd])=>{
+    const pct=totalHa>0?dd.ha/totalHa:0, sweep=pct*2*Math.PI-0.018;
+    if(sweep<=0)return;
+    const g=0.009;
+    const x1=cx+R*Math.cos(angle+g),y1=cy+R*Math.sin(angle+g);
+    const x2=cx+R*Math.cos(angle+g+sweep),y2=cy+R*Math.sin(angle+g+sweep);
+    const ix1=cx+r*Math.cos(angle+g+sweep),iy1=cy+r*Math.sin(angle+g+sweep);
+    const ix2=cx+r*Math.cos(angle+g),iy2=cy+r*Math.sin(angle+g);
+    slices+=`<path d="M${x1},${y1} A${R},${R} 0 ${sweep>Math.PI?1:0},1 ${x2},${y2} L${ix1},${iy1} A${r},${r} 0 ${sweep>Math.PI?1:0},0 ${ix2},${iy2} Z" fill="${dd.color}" opacity=".9" stroke="var(--surface)" stroke-width="1.5"/>`;
+    angle+=pct*2*Math.PI;
   });
+  const donut=`<svg viewBox="0 0 200 200" style="width:160px;height:160px;flex-shrink:0">${slices}<text x="100" y="95" text-anchor="middle" font-family="var(--font-display)" font-size="13" font-weight="800" fill="var(--text)">${fmtN(totalHa,1)}</text><text x="100" y="110" text-anchor="middle" font-size="10" fill="var(--muted)">ha total</text></svg>`;
 
-  const totalHa = Object.values(byCrop).reduce((s, v) => s + v.ha, 0);
-  const crops = Object.entries(byCrop).sort((a, b) => b[1].ha - a[1].ha);
-
-  const cx = 100, cy = 100, R = 80, r = 48;
-  let angle = -Math.PI / 2;
-  let slices = '';
-  const gap = 0.018;
-  crops.forEach(([crop, dd]) => {
-    const pct = totalHa > 0 ? dd.ha / totalHa : 0;
-    const sweep = pct * 2 * Math.PI - gap;
-    if (sweep <= 0) return;
-    const x1 = cx + R * Math.cos(angle + gap/2), y1 = cy + R * Math.sin(angle + gap/2);
-    const x2 = cx + R * Math.cos(angle + gap/2 + sweep), y2 = cy + R * Math.sin(angle + gap/2 + sweep);
-    const ix1 = cx + r * Math.cos(angle + gap/2 + sweep), iy1 = cy + r * Math.sin(angle + gap/2 + sweep);
-    const ix2 = cx + r * Math.cos(angle + gap/2), iy2 = cy + r * Math.sin(angle + gap/2);
-    const large = sweep > Math.PI ? 1 : 0;
-    slices += `<path d="M${x1},${y1} A${R},${R} 0 ${large},1 ${x2},${y2} L${ix1},${iy1} A${r},${r} 0 ${large},0 ${ix2},${iy2} Z" fill="${dd.color}" opacity="0.9" stroke="var(--surface)" stroke-width="1.5"/>`;
-    angle += pct * 2 * Math.PI;
-  });
-  const donutSvg = `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="width:180px;height:180px;flex-shrink:0">${slices}<text x="100" y="95" text-anchor="middle" font-family="'Courier New',monospace" font-size="13" font-weight="800" fill="var(--text)">${fmtN(totalHa,1)}</text><text x="100" y="112" text-anchor="middle" font-family="'Courier New',monospace" font-size="10" fill="var(--muted)">ha total</text></svg>`;
-
-  let legend = '';
-  crops.forEach(([crop, dd]) => {
-    const pct = totalHa > 0 ? (dd.ha / totalHa * 100) : 0;
-    const costPerHa = dd.ha > 0 ? dd.cost / dd.ha : 0;
-    legend += `<div style="margin-bottom:10px;">
+  let legend='';
+  crops.forEach(([crop,dd])=>{
+    const pct=totalHa>0?dd.ha/totalHa*100:0;
+    const profCrop=Math.round((dd.venit-dd.cost)*100)/100;
+    legend+=`<div style="margin-bottom:10px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
         <div style="display:flex;align-items:center;gap:6px;">
-          <span style="width:11px;height:11px;background:${dd.color};border-radius:2px;display:inline-block;flex-shrink:0;border:1px solid rgba(0,0,0,0.1)"></span>
+          <span style="width:11px;height:11px;background:${dd.color};border-radius:2px;display:inline-block;flex-shrink:0;"></span>
           <strong style="font-size:12px;">${crop}</strong>
-          <span style="font-size:10px;color:var(--dim)">${dd.parcele} parc.</span>
+          <span style="font-size:10px;color:var(--dim);">${dd.parcele} parc.</span>
         </div>
-        <span style="font-size:12px;font-weight:800;color:var(--text)">${fmtN(pct,1)}%</span>
+        <span style="font-size:11px;font-weight:800;color:${profCrop>=0?'var(--green)':'var(--red)'};">${profCrop>=0?'+':''}${fmt(profCrop)} lei</span>
       </div>
-      <div style="background:var(--border);border-radius:4px;height:6px;overflow:hidden;">
-        <div style="background:${dd.color};width:${pct}%;height:100%;border-radius:4px;opacity:0.85"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-top:2px;">
-        <span style="font-size:10px;color:var(--muted)">${fmtN(dd.ha,2)} ha</span>
-        ${dd.cost > 0 ? `<span style="font-size:10px;color:var(--orange)">${fmt(costPerHa)} lei/ha</span>` : ''}
+      <div style="background:var(--border);border-radius:4px;height:5px;overflow:hidden;"><div style="background:${dd.color};width:${pct}%;height:100%;border-radius:4px;opacity:.85;"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:2px;font-size:10px;">
+        <span style="color:var(--muted);">${fmtN(dd.ha,2)} ha · ${fmtN(pct,1)}%</span>
+        <span style="color:var(--red);">↓${fmt(Math.round(dd.cost))} / <span style="color:var(--blue);">↑${fmt(Math.round(dd.venit))}</span></span>
       </div>
     </div>`;
   });
 
   statsEl.innerHTML = compHtml + `<div class="cost-summary" style="margin-top:4px;">
-    <div class="cost-label" style="margin-bottom:10px;">📊 STRUCTURA CULTURILOR · ${activeYearName.toUpperCase()}</div>
-    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">${donutSvg}<div style="flex:1;min-width:180px;">${legend}</div></div>
+    <div class="cost-label" style="margin-bottom:10px;">🌱 STRUCTURA CULTURILOR</div>
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">${donut}<div style="flex:1;min-width:160px;">${legend}</div></div>
   </div>`;
 }
 
-// ─── ANI AGRICOLI ─────────────────────────────────────────────────────────────
 function renderYearSelector() {
   const sel = document.getElementById('year-selector'); if (!sel) return;
   sel.innerHTML = '<option value="">Toți anii</option>';
@@ -3221,52 +3612,33 @@ function updateMultiSelectBar() {
   info.textContent = `${selectedFieldIds.size} parcele · ${fmtN(totalHa, 2)} ha`;
 }
 
-function openMultiSelectTreatmentForm() { openMultiTreatmentForm(); }
-function openMultiTreatmentForm() {
-  // calculează suprafața totală a parcelelor selectate
-  let totalHa = 0;
-  const names = [];
-  selectedFieldIds.forEach(id => {
-    const f = state.fields.find(x => x.id === id);
-    if (f) { totalHa += (Number(f.areaHectares) || 0); names.push(f.name); }
-  });
-
-  // pre-populează selectul de parcele cu toate selectate (ascuns), folosim un câmp special
-  const fSel = document.getElementById('treat-field-id');
-  fSel.innerHTML = '';
-  // adăugăm o opțiune specială "multiple" + toate parcelele selectate
-  const multiOpt = document.createElement('option');
-  multiOpt.value = '__multi__';
-  multiOpt.textContent = `[${selectedFieldIds.size} parcele selectate]`;
-  fSel.appendChild(multiOpt);
-  state.fields.forEach(f => {
-    const opt = document.createElement('option');
-    opt.value = f.id; opt.textContent = f.name;
-    fSel.appendChild(opt);
-  });
-  fSel.value = '__multi__';
-
-  const pSel = document.getElementById('treat-product-id'); pSel.innerHTML = '';
-  state.products.forEach(p => pSel.innerHTML += `<option value="${p.id}">${p.name}</option>`);
-
-  // setăm suprafața pre-calculată
-  document.getElementById('treat-area').value = fmtN(totalHa, 4);
-  document.getElementById('treat-date').value = new Date().toISOString().split('T')[0];
-
-  // afișăm nota cu parcelele selectate
-  let noteEl = document.getElementById('treat-multi-note');
-  if (!noteEl) {
-    noteEl = document.createElement('div');
-    noteEl.id = 'treat-multi-note';
-    noteEl.style.cssText = 'font-size:11px;color:var(--orange);background:#ea580c0a;border:1px solid var(--orange);border-radius:6px;padding:6px 8px;margin-bottom:8px';
-    document.getElementById('treatment-modal').querySelector('.modal-body').prepend(noteEl);
-  }
-  noteEl.textContent = '🗂 Parcele: ' + names.join(', ');
-  noteEl.style.display = 'block';
-
-  document.getElementById('treatment-modal').style.display = 'flex';
-  setTimeout(updateTreatCalc, 50);
+function openMultiSelectTaskForm() {
+  if (!selectedFieldIds.size) return;
+  openTaskForm([...selectedFieldIds]);
 }
+
+function openMultiSelectTreatmentForm() {
+  if (!selectedFieldIds.size) return;
+  openTreatmentForm();
+  setTimeout(() => {
+    // pre-selectăm parcelele din selecția de pe hartă
+    renderTreatFieldPicker([...selectedFieldIds]);
+    updateTreatFieldSummary();
+    updateTreatCalc();
+    // notă vizuală
+    const noteEl = document.getElementById('treat-multi-note');
+    if (noteEl) {
+      const names = [];
+      selectedFieldIds.forEach(id => {
+        const f = state.fields.find(x => x.id === id);
+        if (f) names.push(f.name);
+      });
+      noteEl.textContent = '🗺 Selecție hartă: ' + names.join(', ');
+      noteEl.style.display = 'block';
+    }
+  }, 100);
+}
+function openMultiTreatmentForm() { openMultiSelectTreatmentForm(); }
 
 function saveMultiTreatment() { saveTreatment(); }
 
@@ -3294,6 +3666,442 @@ function importBackup(input) {
   };
   r.readAsText(file);
 }
+// ─── RECOLTARE ────────────────────────────────────────────────────────────────
+function getYearHarvests() {
+  if (!state.activeYear) return [];
+  return state.harvests[state.activeYear] || [];
+}
+
+function renderHarvestView() {
+  const root = document.getElementById('harvest-list'); if (!root) return;
+  root.innerHTML = '';
+  const list = getYearHarvests();
+
+  if (!list.length) {
+    root.innerHTML = '<div class="no-data">Nicio recoltă înregistrată pentru acest an.</div>';
+    return;
+  }
+
+  let totalVenit = 0;
+  [...list].sort((a,b) => (b.date||'').localeCompare(a.date||'')).forEach(h => {
+    const f = state.fields.find(x => x.id === h.fieldId);
+    const ha = Number(f?.areaHectares)||0;
+    const venit = Math.round(h.tons * h.price * 100) / 100;
+    const tPerHa = ha > 0 ? Math.round(h.tons / ha * 100) / 100 : 0;
+    totalVenit += venit;
+    const card = document.createElement('div');
+    card.style.cssText = 'background:var(--surface);border:1px solid var(--border-light);border-left:4px solid var(--green);border-radius:var(--radius);padding:13px;box-shadow:var(--shadow);margin-bottom:8px;';
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+        <div>
+          <strong style="font-family:var(--font-display);font-size:14px;">${f?.name || '—'}</strong>
+          <span style="font-size:11px;color:var(--muted);margin-left:8px;">📅 ${fmtDate(h.date)}</span>
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-sm btn-gray" onclick="editHarvest('${h.id}')">✎</button>
+          <button class="btn btn-sm btn-red" onclick="deleteHarvest('${h.id}')">🗑</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:6px;">
+        <div style="background:var(--surface2);border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Producție</div>
+          <div style="font-size:16px;font-weight:800;color:var(--text);">${h.tons} t</div>
+          <div style="font-size:10px;color:var(--muted);">${tPerHa} t/ha</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Preț</div>
+          <div style="font-size:16px;font-weight:800;color:var(--blue);">${h.price} lei</div>
+          <div style="font-size:10px;color:var(--muted);">/ tonă</div>
+        </div>
+        <div style="background:var(--green-soft);border-radius:8px;padding:8px;text-align:center;border:1px solid #bbf7d0;">
+          <div style="font-size:10px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Venit</div>
+          <div style="font-size:16px;font-weight:800;color:var(--green);">${fmt(venit)}</div>
+          <div style="font-size:10px;color:var(--muted);">lei</div>
+        </div>
+      </div>
+      ${h.humidity ? `<div style="font-size:11px;color:var(--muted);">💧 Umiditate: ${h.humidity}%</div>` : ''}
+      ${h.buyer ? `<div style="font-size:11px;color:var(--muted);">🏢 ${h.buyer}</div>` : ''}
+      ${h.notes ? `<div style="font-size:11px;color:var(--dim);font-style:italic;margin-top:2px;">${h.notes}</div>` : ''}`;
+    root.appendChild(card);
+  });
+
+  // sumar total
+  const summary = document.createElement('div');
+  summary.style.cssText = 'background:var(--green-soft);border:2px solid #bbf7d0;border-radius:var(--radius);padding:14px;text-align:center;margin-top:4px;';
+  const totalTons = list.reduce((s,h) => s + Number(h.tons), 0);
+  summary.innerHTML = `<div style="font-size:11px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Total an agricol</div>
+    <div style="font-size:22px;font-weight:800;font-family:var(--font-display);color:var(--green);">${fmt(totalVenit)} lei</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:2px;">${Math.round(totalTons*100)/100} tone recoltate · ${list.length} parcele</div>`;
+  root.appendChild(summary);
+}
+
+function openHarvestForm(fieldId = null) {
+  const fSel = document.getElementById('harvest-field-id');
+  fSel.innerHTML = '';
+  activeFields().forEach(f => fSel.innerHTML += `<option value="${f.id}">${f.name}</option>`);
+  if (fieldId) fSel.value = fieldId;
+  updateHarvestCropLabel();
+  fSel.onchange = updateHarvestCropLabel;
+  document.getElementById('harvest-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('harvest-tons').value = '';
+  document.getElementById('harvest-humidity').value = '';
+  document.getElementById('harvest-price').value = '';
+  document.getElementById('harvest-buyer').value = '';
+  document.getElementById('harvest-notes').value = '';
+  document.getElementById('harvest-edit-id').value = '';
+  document.getElementById('harvest-modal-title').textContent = '🌾 Înregistrare Recoltă';
+  document.getElementById('harvest-calc').textContent = 'Introdu producția și prețul...';
+  document.getElementById('harvest-modal').style.display = 'flex';
+}
+
+function updateHarvestCropLabel() {
+  const fSel = document.getElementById('harvest-field-id');
+  const f = state.fields.find(x => x.id === fSel.value);
+  const cropEl = document.getElementById('harvest-crop');
+  if (cropEl && f) cropEl.value = fieldCrop(f.id).crop || '';
+}
+
+function updateHarvestCalc() {
+  const tons = Number(document.getElementById('harvest-tons').value) || 0;
+  const price = Number(document.getElementById('harvest-price').value) || 0;
+  const fSel = document.getElementById('harvest-field-id');
+  const f = state.fields.find(x => x.id === fSel?.value);
+  const ha = Number(f?.areaHectares) || 0;
+  const calc = document.getElementById('harvest-calc');
+  if (!calc) return;
+  if (!tons || !price) { calc.textContent = 'Introdu producția și prețul...'; return; }
+  const venit = tons * price;
+  const tPerHa = ha > 0 ? Math.round(tons/ha*100)/100 : 0;
+  calc.innerHTML = `${tons} tone × ${price} lei/t = <strong style="color:var(--green);font-size:14px;">${fmt(venit)} lei venit</strong>${ha>0?` · ${tPerHa} t/ha`:''}`;
+}
+
+function hideHarvestForm() { document.getElementById('harvest-modal').style.display = 'none'; }
+
+function saveHarvest() {
+  const fieldId = document.getElementById('harvest-field-id').value;
+  const tons = Number(document.getElementById('harvest-tons').value);
+  const price = Number(document.getElementById('harvest-price').value);
+  if (!fieldId || !tons || !price) { alert('Parcelă, producție și preț sunt obligatorii.'); return; }
+  if (!state.activeYear) { alert('Selectează un an agricol mai întâi.'); return; }
+  if (!state.harvests[state.activeYear]) state.harvests[state.activeYear] = [];
+  const editId = document.getElementById('harvest-edit-id').value;
+  const data = {
+    fieldId, date: document.getElementById('harvest-date').value,
+    tons: Math.round(tons*100)/100,
+    humidity: Number(document.getElementById('harvest-humidity').value)||0,
+    price: Math.round(price*100)/100,
+    buyer: document.getElementById('harvest-buyer').value.trim(),
+    notes: document.getElementById('harvest-notes').value.trim()
+  };
+  if (editId) {
+    const idx = state.harvests[state.activeYear].findIndex(h => h.id === editId);
+    if (idx >= 0) state.harvests[state.activeYear][idx] = { ...state.harvests[state.activeYear][idx], ...data };
+  } else {
+    state.harvests[state.activeYear].push({ id: gid(), ...data });
+  }
+  save(); hideHarvestForm(); renderHarvestView();
+  if (currentView === 'costs') renderCostsView();
+}
+
+function editHarvest(id) {
+  const list = getYearHarvests();
+  const h = list.find(x => x.id === id); if (!h) return;
+  const fSel = document.getElementById('harvest-field-id');
+  fSel.innerHTML = '';
+  activeFields().forEach(f => fSel.innerHTML += `<option value="${f.id}">${f.name}</option>`);
+  fSel.value = h.fieldId;
+  fSel.onchange = updateHarvestCropLabel;
+  updateHarvestCropLabel();
+  document.getElementById('harvest-date').value = h.date || '';
+  document.getElementById('harvest-tons').value = h.tons || '';
+  document.getElementById('harvest-humidity').value = h.humidity || '';
+  document.getElementById('harvest-price').value = h.price || '';
+  document.getElementById('harvest-buyer').value = h.buyer || '';
+  document.getElementById('harvest-notes').value = h.notes || '';
+  document.getElementById('harvest-edit-id').value = id;
+  document.getElementById('harvest-modal-title').textContent = '✎ Editează Recoltă';
+  updateHarvestCalc();
+  document.getElementById('harvest-modal').style.display = 'flex';
+}
+
+function deleteHarvest(id) {
+  if (!confirm('Ștergi înregistrarea recoltei?')) return;
+  if (!state.activeYear || !state.harvests[state.activeYear]) return;
+  state.harvests[state.activeYear] = state.harvests[state.activeYear].filter(h => h.id !== id);
+  save(); renderHarvestView();
+  if (currentView === 'costs') renderCostsView();
+}
+
+// ─── SCĂDERE AUTOMATĂ STOC ────────────────────────────────────────────────────
+function deductStockForTreatment(substances) {
+  if (!substances || !substances.length) return;
+  const alerts = [];
+  substances.forEach(s => {
+    const p = state.products.find(x => x.id === s.prodId);
+    if (!p) return;
+    const used = Math.round(s.dose * s.area * 100) / 100;
+    p.stock = Math.round((Number(p.stock) - used) * 100) / 100;
+    if (p.stock < 0) p.stock = 0;
+    // alertă stoc mic (sub 10% din cantitate folosită × 10 = stoc pentru ~10 lucrări)
+    const threshold = used * 5;
+    if (p.stock < threshold && p.stock >= 0) {
+      alerts.push(`⚠️ Stoc mic: ${p.name} — ${p.stock} ${p.unit} rămase`);
+    }
+  });
+  if (alerts.length) {
+    setTimeout(() => showSync('error', alerts[0]), 500);
+    setTimeout(() => hideSync(), 5000);
+  }
+}
+
+// ─── EXPORT APIA ──────────────────────────────────────────────────────────────
+function exportAPIA() {
+  const d = yd();
+  if (!d) { alert('Selectează un an agricol mai întâi.'); return; }
+  const yearName = state.years.find(y => y.id === state.activeYear)?.name || 'An necunoscut';
+
+  // Lazy-load SheetJS
+  if (typeof XLSX === 'undefined') {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.dataset.ods='1';
+    s.onload = () => _buildAPIA(d, yearName);
+    s.onerror = () => alert('Nu s-a putut încărca biblioteca Excel. Verifică conexiunea.');
+    document.head.appendChild(s);
+  } else {
+    _buildAPIA(d, yearName);
+  }
+}
+
+function _buildAPIA(d, yearName) {
+  const wb = XLSX.utils.book_new();
+
+  // ── FOAIA 0: Registrul Fermierului ───────────────────────────────────────
+  const fr = state.farmer || {};
+  const totalHaAll = state.fields.reduce((s,f) => s + (Number(f.areaHectares)||0), 0);
+
+  const rfRows = [
+    [`REGISTRUL FERMIERULUI — ${yearName}`], [],
+    ['DATE IDENTIFICARE FERMIER', ''],
+    ['Nume și prenume / Denumire:', fr.name || ''],
+    ['CNP / CIF:', fr.cnp || ''],
+    ['Adresă:', fr.address || ''],
+    ['Localitate:', fr.city || ''],
+    ['Județul:', fr.county || ''],
+    ['Telefon:', fr.phone || ''],
+    ['Nr. înregistrare APIA:', fr.apia || ''],
+    ['IBAN:', fr.iban || ''],
+    [],
+    ['SUMAR EXPLOATAȚIE', ''],
+    ['An agricol:', yearName],
+    ['Total parcele:', state.fields.length],
+    ['Suprafață totală (ha):', Math.round(totalHaAll * 100) / 100],
+    [],
+    ['REGISTRUL PARCELELOR', '', '', '', '', '', '', ''],
+    [],
+    ['Nr.\ncrt.', 'Denumire\nparcelă', 'Cultură\nan curent', 'Suprafață\ntotală (ha)',
+     'Nr. cadastral /\nBloc fizic', 'Tarla /\nParcelă', 'Mod de\ndeținere',
+     'Arendă /\nProprietate (ha)']
+  ];
+
+  state.fields.forEach((f, i) => {
+    const fc = fieldCrop(f.id);
+    rfRows.push([
+      i + 1,
+      f.name || '',
+      fc.crop || '',
+      Math.round((Number(f.areaHectares)||0) * 100) / 100,
+      f.cadastral || '', // de completat
+      f.tarla || '',     // de completat
+      '', // mod deținere
+      Math.round((Number(f.areaHectares)||0) * 100) / 100
+    ]);
+  });
+
+  rfRows.push([]);
+  rfRows.push(['TOTAL', '', '', Math.round(totalHaAll * 100) / 100, '', '', '', Math.round(totalHaAll * 100) / 100]);
+
+  const wsRF = XLSX.utils.aoa_to_sheet(rfRows);
+  wsRF['!cols'] = [{wch:5},{wch:22},{wch:16},{wch:12},{wch:18},{wch:14},{wch:14},{wch:16}];
+  wsRF['!merges'] = [
+    { s:{r:0,c:0}, e:{r:0,c:7} },
+    { s:{r:2,c:0}, e:{r:2,c:1} },
+    { s:{r:12,c:0}, e:{r:12,c:1} },
+    { s:{r:16,c:0}, e:{r:16,c:7} }
+  ];
+  XLSX.utils.book_append_sheet(wb, wsRF, 'Registrul Fermierului');
+
+  // reordonăm foile: Registrul Fermierului primul
+  wb.SheetNames = ['Registrul Fermierului', ...wb.SheetNames.filter(s => s !== 'Registrul Fermierului')];
+  const pppHeader = [
+    'Nr.\ncrt.', 'Data\naplic.', 'Perioada', 'Parcela /\nTarlaua',
+    'Cultura', 'Suprafața\n(ha)', 'Produs\nutilizat',
+    'Substanța\nactivă', 'Categorie',
+    'Doza\naplicată\n(L-kg/ha)', 'Cant.\ntotală', 'U.M.',
+    'Doză\nomologată\nmin', 'Doză\nomologată\nmax',
+    'Scop\ntratament', 'Utilaj\ntractor', 'Implement', 'Observații'
+  ];
+
+  const pppRows = [];
+  let nr = 1;
+
+  // filtrăm doar tratamentele cu substanțe fitosanitare (erbicid, fungicid, insecticid, regulator)
+  const fitoCats = ['Erbicid', 'Fungicid', 'Insecticid', 'Regulator', 'erbicid', 'fungicid', 'insecticid', 'regulator'];
+
+  d.treatments.forEach(t => {
+    const f = state.fields.find(x => x.id === t.fieldId);
+    if (!f) return;
+    const fc = fieldCrop(t.fieldId);
+    const fitoSubst = (t.substances || []).filter(s => {
+      const p = state.products.find(x => x.id === s.prodId);
+      return p && fitoCats.some(c => (p.category||'').toLowerCase().includes(c.toLowerCase()));
+    });
+    if (!fitoSubst.length) return; // nu e tratament fitosanitar
+
+    fitoSubst.forEach((s, i) => {
+      const p = state.products.find(x => x.id === s.prodId);
+      pppRows.push([
+        i === 0 ? nr : '',
+        i === 0 ? fmtDate(t.date) : '',
+        i === 0 ? (t.dateEnd && t.dateEnd !== t.date ? fmtDate(t.dateEnd) : '') : '',
+        i === 0 ? f.name : '',
+        i === 0 ? fc.crop : '',
+        i === 0 ? Number(f.areaHectares) : '',
+        s.productName || '',
+        p ? (p.activeSubst || '') : '',
+        p ? (p.category || '') : '',
+        Number(s.dose) || '',
+        s.dose && f.areaHectares ? Math.round(s.dose * Number(f.areaHectares) * 100) / 100 : '',
+        p ? (p.unit || '') : '',
+        p ? (p.doseMin || '') : '',
+        p ? (p.doseMax || '') : '',
+        i === 0 ? (t.workType || '') : '',
+        i === 0 ? (t.tractorName || '') : '',
+        i === 0 ? (t.implementName || '') : '',
+        i === 0 ? (t.notes || '') : ''
+      ]);
+    });
+    nr++;
+  });
+
+  if (!pppRows.length) {
+    pppRows.push(['Nu există tratamente fitosanitare înregistrate pentru acest an.', ...Array(14).fill('')]);
+  }
+
+  const wsPPP = XLSX.utils.aoa_to_sheet([
+    [`REGISTRU DE EVIDENȚĂ A TRATAMENTELOR CU PRODUSE DE PROTECȚIA PLANTELOR — ${yearName}`],
+    [],
+    pppHeader,
+    ...pppRows
+  ]);
+
+  // stilizare lățimi coloane
+  wsPPP['!cols'] = [
+    {wch:5},{wch:11},{wch:11},{wch:18},{wch:14},{wch:9},
+    {wch:22},{wch:22},{wch:14},{wch:10},{wch:10},{wch:6},
+    {wch:10},{wch:10},{wch:16},{wch:18},{wch:18},{wch:24}
+  ];
+  wsPPP['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:14} }];
+
+  XLSX.utils.book_append_sheet(wb, wsPPP, 'Registru PPP');
+
+  // ── FOAIA 2: Plan fertilizare ──────────────────────────────────────────────
+  const fertHeader = [
+    'Nr.\ncrt.', 'Parcela /\nTarlaua', 'Cultura', 'Suprafața\n(ha)',
+    'Tip\nîngrășământ', 'Categorie', 'Doza\n(kg sau L/ha)',
+    'Cant.\ntotală', 'U.M.',
+    'N\n(kg/ha)', 'P₂O₅\n(kg/ha)', 'K₂O\n(kg/ha)', 'S\n(kg/ha)',
+    'Data\naplicării', 'Perioada', 'Tip lucrare', 'Metoda de\naplicare',
+    'Cost\n(lei)', 'Observații'
+  ];
+
+  const fertCats = ['Îngrășământ', 'ingrasamant', 'fertiliz', 'ngr'];
+  const fertRows = [];
+  let nrF = 1;
+
+  d.treatments.forEach(t => {
+    const f = state.fields.find(x => x.id === t.fieldId);
+    if (!f) return;
+    const fc = fieldCrop(t.fieldId);
+    const fertSubst = (t.substances || []).filter(s => {
+      const p = state.products.find(x => x.id === s.prodId);
+      return p && fertCats.some(c => (p.category||'').toLowerCase().includes(c.toLowerCase()));
+    });
+    if (!fertSubst.length) return;
+
+    fertSubst.forEach((s, i) => {
+      const p = state.products.find(x => x.id === s.prodId);
+      const dose = Number(s.dose)||0;
+      const ha2 = Number(f.areaHectares)||0;
+      const calcNpk = (pct) => pct && dose ? Math.round(dose * (pct/100) * 100)/100 : '';
+      fertRows.push([
+        i === 0 ? nrF : '',
+        i === 0 ? f.name : '',
+        i === 0 ? fc.crop : '',
+        i === 0 ? Number(f.areaHectares) : '',
+        s.productName || '',
+        p ? (p.category || '') : '',
+        dose || '',
+        dose && ha2 ? Math.round(dose * ha2 * 100) / 100 : '',
+        p ? (p.unit || '') : '',
+        calcNpk(p && p.n), calcNpk(p && p.p), calcNpk(p && p.k), calcNpk(p && p.s),
+        i === 0 ? fmtDate(t.date) : '',
+        i === 0 ? (t.dateEnd && t.dateEnd !== t.date ? fmtDate(t.dateEnd) : '') : '',
+        i === 0 ? (t.workType || '') : '',
+        '',
+        i === 0 ? (Number(t.totalCost) || '') : '',
+        i === 0 ? (t.notes || '') : ''
+      ]);
+    });
+    nrF++;
+  });
+
+  if (!fertRows.length) {
+    fertRows.push(['Nu există lucrări de fertilizare înregistrate pentru acest an.', ...Array(14).fill('')]);
+  }
+
+  const wsFert = XLSX.utils.aoa_to_sheet([
+    [`PLAN DE FERTILIZARE — ${yearName}`],
+    [],
+    fertHeader,
+    ...fertRows
+  ]);
+
+  wsFert['!cols'] = [
+    {wch:5},{wch:18},{wch:14},{wch:9},{wch:22},{wch:16},
+    {wch:10},{wch:10},{wch:6},{wch:11},{wch:11},
+    {wch:16},{wch:18},{wch:10},{wch:24}
+  ];
+  wsFert['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:14} }];
+
+  XLSX.utils.book_append_sheet(wb, wsFert, 'Plan Fertilizare');
+
+  // ── FOAIA 3: Sumar costuri ────────────────────────────────────────────────
+  const sumRows = [
+    [`SUMAR COSTURI — ${yearName}`], [],
+    ['Parcela', 'Cultura', 'Suprafața (ha)', 'Cost total (lei)', 'Cost/ha (lei)']
+  ];
+  let grandTotal = 0;
+  state.fields.forEach(f => {
+    const fc = fieldCrop(f.id);
+    let cost = 0;
+    d.treatments.filter(t => t.fieldId === f.id).forEach(t => cost += Number(t.totalCost)||0);
+    const ha = Number(f.areaHectares) || 0;
+    sumRows.push([f.name, fc.crop, ha, Math.round(cost*100)/100, ha > 0 ? Math.round(cost/ha*100)/100 : 0]);
+    grandTotal += cost;
+  });
+  sumRows.push([]);
+  sumRows.push(['TOTAL', '', state.fields.reduce((s,f)=>s+(Number(f.areaHectares)||0),0).toFixed(2), Math.round(grandTotal*100)/100, '']);
+
+  const wsSum = XLSX.utils.aoa_to_sheet(sumRows);
+  wsSum['!cols'] = [{wch:20},{wch:16},{wch:14},{wch:16},{wch:14}];
+  wsSum['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:4} }];
+  XLSX.utils.book_append_sheet(wb, wsSum, 'Sumar Costuri');
+
+  // ── Download ──────────────────────────────────────────────────────────────
+  const filename = `SmartFarm_APIA_${yearName.replace(/[^a-zA-Z0-9]/g,'_')}.ods`;
+  XLSX.writeFile(wb, filename, {bookType:'ods'});
+}
+
 function resetAll() {
   if(confirm("Atenție! Ștergi definitiv toate datele?")) {
     localStorage.removeItem(SK);
