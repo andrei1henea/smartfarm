@@ -517,10 +517,13 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
         <div id="map"></div>
         <div id="multiselect-bar" class="hidden">
           <span id="ms-info">0 parcele · 0.00 ha</span>
-          <button class="btn btn-sm btn-green" onclick="openMultiCropForm()">🌱 Schimbă Cultura</button>
+          <select id="ms-crop-select" class="field-input" style="font-size:11px;height:28px;width:auto;padding:2px 6px;" onchange="selectByCrop(this.value)">
+            <option value="">🌱 Cultură...</option>
+          </select>
+          <button class="btn btn-sm btn-green" onclick="openMultiCropForm()">🌱 Schimbă</button>
           <button class="btn btn-sm btn-yellow" onclick="openMultiSelectTaskForm()">📅 Planifică</button>
-          <button class="btn btn-sm btn-orange" onclick="openMultiSelectTreatmentForm()">📋 Înregistrează Lucrare</button>
-          <button class="btn btn-sm btn-gray" onclick="clearMultiSelection()">✕ Golește</button>
+          <button class="btn btn-sm btn-orange" onclick="openMultiSelectTreatmentForm()">📋 Lucrare</button>
+          <button class="btn btn-sm btn-gray" onclick="clearMultiSelection()">✕</button>
         </div>
         <div id="crop-panel">
           <div id="crop-panel-drag"></div>
@@ -624,11 +627,19 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 
     <div id="treatments-view" class="scroll-view" style="display:none">
       <div class="filter-row">
-        <span style="font-size:12px;color:var(--muted);font-weight:700">JURNAL LUCRĂRI</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:12px;color:var(--muted);font-weight:700">JURNAL LUCRĂRI</span>
+          <button class="btn btn-sm btn-gray" id="btn-select-treatments" onclick="toggleTreatmentSelectMode()">☑ Selectează</button>
+          <button class="btn btn-sm btn-red" id="btn-delete-selected-treatments" style="display:none" onclick="deleteSelectedTreatments()">🗑 Șterge selectate</button>
+        </div>
         <div style="display:flex;gap:6px;">
           <button class="btn btn-sm btn-green" onclick="exportAPIA()" title="Export Excel APIA">📊 Export APIA</button>
           <button class="btn btn-sm btn-blue" onclick="openTreatmentForm()">+ Înregistrează</button>
         </div>
+      </div>
+      <div class="filter-chips" id="treatments-filter-chips" style="flex-wrap:wrap;gap:4px;margin-bottom:4px;"></div>
+      <div id="treatments-select-all-bar" style="display:none;margin-bottom:6px;">
+        <button class="btn btn-sm btn-gray" onclick="selectAllFilteredTreatments()" style="width:100%;">☑ Selectează toate din filtrare</button>
       </div>
       <div id="treatments-list" class="card-list"></div>
     </div>
@@ -840,7 +851,14 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
   <div class="modal-box">
     <div class="modal-header"><div class="modal-title">Produs Magazie</div><button class="modal-close" onclick="hideProductForm()">✕</button></div>
     <div class="modal-body">
-      <div style="margin-bottom:8px;"><label class="field-label">Denumire substanță *</label><input class="field-input" id="prod-name"/></div>
+      <div style="margin-bottom:8px;">
+        <label class="field-label">Denumire substanță *</label>
+        <div style="display:flex;gap:6px;">
+          <input class="field-input" id="prod-name" style="flex:1;" placeholder="ex: Roundup, Amistar, Uree 46%"/>
+          <button class="btn btn-sm btn-blue" onclick="searchProductAI()" id="btn-ai-search" title="Caută pe pesticide.ro">🔍 Caută</button>
+        </div>
+        <div id="ai-search-result" style="display:none;margin-top:6px;font-size:11px;background:var(--surface2);border:1px solid var(--border-light);border-radius:8px;padding:8px 10px;color:var(--muted);"></div>
+      </div>
       <div class="two-col" style="margin-bottom:8px;">
         <div><label class="field-label">Categorie</label><select class="field-input" id="prod-cat"></select></div>
         <div><label class="field-label">Unitate</label><select class="field-input" id="prod-unit"></select></div>
@@ -970,7 +988,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 
       <div style="margin-bottom:10px;">
         <label class="field-label">Tip lucrare</label>
-        <select class="field-input" id="treat-work-type"></select>
+        <select class="field-input" id="treat-work-type" onchange="filterSubstancesByWorkType()"></select>
       </div>
 
       <div class="two-col" style="margin-bottom:10px;">
@@ -1043,7 +1061,7 @@ let DEFAULT_CULTURES = {
   'Altele': '#64748b'
 };
 
-const DEFAULT_PRODUCT_CATEGORIES = ['Erbicid', 'Fungicid', 'Insecticid', 'Îngrășământ', 'Regulator'];
+const DEFAULT_PRODUCT_CATEGORIES = ['Erbicid', 'Fungicid', 'Insecticid', 'Îngrășământ', 'Regulator', 'Sămânță', 'Combustibil', 'Altele'];
 const DEFAULT_PRODUCT_UNITS = ['L', 'kg', 'g', 'ml', 't', 'buc'];
 const DEFAULT_DIESEL_PRICE = 7.5; // lei/litru implicit
 const DEFAULT_WORK_TYPES = ['Arătură', 'Discuit', 'Cultivat', 'Semănat', 'Fertilizare', 'Erbicidare', 'Fungicidare', 'Insecticidare', 'Irigare', 'Recoltare', 'Balotat', 'Transport', 'Altele'];
@@ -1141,6 +1159,8 @@ function applyRawState(raw) {
   if (!state.machinery) state.machinery = [];
   if (!state.dieselPrice) state.dieselPrice = DEFAULT_DIESEL_PRICE;
   if (!state.farmer) state.farmer = {};
+  // round existing areaHectares to 2 decimals
+  state.fields.forEach(function(f){if(f.areaHectares) f.areaHectares=Math.round(f.areaHectares*100)/100;});
   if (!state.harvests) state.harvests = {};
   if (!state.years) state.years = [];
   if (!state.yearData) state.yearData = {};
@@ -1635,6 +1655,25 @@ function populateCropDropdowns() {
   if(importSel) { importSel.innerHTML = ''; sorted.forEach(c => { importSel.innerHTML += `<option value="${c}">${c}</option>`; }); }
 }
 
+// ─── AI PRODUCT SEARCH ────────────────────────────────────────────────────────
+async function searchProductAI() {
+  const name = document.getElementById('prod-name').value.trim();
+  if (!name) { alert('Introdu mai întâi numele produsului.'); return; }
+
+  const btn = document.getElementById('btn-ai-search');
+  const resultEl = document.getElementById('ai-search-result');
+
+  // Deschide pesticide.ro cu căutare directă
+  const url = 'https://www.pesticide.ro/cautare/' + encodeURIComponent(name);
+  window.open(url, '_blank');
+
+  // Afișăm instrucțiuni
+  resultEl.style.display = 'block';
+  resultEl.style.color = 'var(--blue)';
+  resultEl.innerHTML = '🔍 S-a deschis <strong>pesticide.ro</strong> cu rezultatele pentru "<strong>' + name + '</strong>".<br>' +
+    'Găsește produsul, notează substanța activă și dozele, apoi completează câmpurile de mai jos.';
+}
+
 // ─── TIPURI LUCRĂRI ───────────────────────────────────────────────────────────
 function renderWorkTypesPanel() {
   const container = document.getElementById('worktype-list'); if (!container) return;
@@ -1695,6 +1734,98 @@ function saveEditWorkType(oldWt) {
   state.workTypes = state.workTypes.map(w => w === oldWt ? newName : w);
   save(); renderWorkTypesPanel(); populateWorkTypeSelect();
 }
+// mapare tip lucrare → categorii produse relevante
+const WORK_TYPE_CATEGORIES = {
+  'erbicidare': ['erbicid'],
+  'erbicid':    ['erbicid'],
+  'fungicidare':['fungicid'],
+  'fungicid':   ['fungicid'],
+  'insecticidare':['insecticid'],
+  'insecticid': ['insecticid'],
+  'fertilizare':['îngrășământ','ingrasamant','fertiliz','ngr'],
+  'îngrășare':  ['îngrășământ','ingrasamant','fertiliz','ngr'],
+  'ingrasamant':['îngrășământ','ingrasamant','fertiliz','ngr'],
+  'semănat':    ['sămânță','samanta','seminta','sămânțe'],
+  'semanat':    ['sămânță','samanta','seminta','sămânțe'],
+  'plantat':    ['sămânță','samanta','seminta','sădire'],
+  'regulator':  ['regulator'],
+  'tratament':  ['erbicid','fungicid','insecticid','regulator','pesticid'],
+  'dezinfect':  ['fungicid','insecticid'],
+};
+
+function getProductsForWorkType(workType) {
+  if (!workType) return state.products;
+  const wt = workType.toLowerCase();
+  // caută match în mapare
+  for (const [key, cats] of Object.entries(WORK_TYPE_CATEGORIES)) {
+    if (wt.includes(key)) {
+      const filtered = state.products.filter(p =>
+        cats.some(c => (p.category||'').toLowerCase().includes(c))
+      );
+      return filtered.length ? filtered : state.products; // fallback la toate dacă nimic
+    }
+  }
+  // verifică și categoria direct în tipul lucrării
+  const directMatch = state.products.filter(p =>
+    p.category && wt.includes(p.category.toLowerCase())
+  );
+  return directMatch.length ? directMatch : state.products;
+}
+
+function getProductsForWorkType(workType) {
+  if (!workType) return state.products;
+  const wt = workType.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // strip diacritice pentru comparare
+  
+  // caută match în mapare (și fără diacritice)
+  for (const [key, cats] of Object.entries(WORK_TYPE_CATEGORIES)) {
+    const keyNorm = key.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (wt.includes(keyNorm) || keyNorm.includes(wt)) {
+      const filtered = state.products.filter(p => {
+        const pcat = (p.category||'').toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return cats.some(c => {
+          const cnorm = c.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          return pcat.includes(cnorm) || cnorm.includes(pcat);
+        });
+      });
+      return filtered.length ? filtered : state.products;
+    }
+  }
+  return state.products;
+}
+
+function filterSubstancesByWorkType() {
+  const workType = document.getElementById('treat-work-type')?.value || '';
+  const products = getProductsForWorkType(workType);
+  const allProducts = state.products;
+  const isFiltered = products.length !== allProducts.length;
+
+  // indicator vizual
+  const substSection = document.getElementById('substances-list');
+  const existingNote = document.getElementById('subst-filter-note');
+  if (existingNote) existingNote.remove();
+  if (isFiltered && workType && substSection) {
+    const note = document.createElement('div');
+    note.id = 'subst-filter-note';
+    note.style.cssText = 'font-size:11px;color:var(--blue);background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:4px 8px;margin-bottom:6px;';
+    note.textContent = '🔍 Filtrare activă: ' + products.length + ' produse pentru "' + workType + '"';
+    substSection.before(note);
+  }
+
+  // actualizează toate select-urile de produse existente
+  substanceRows.forEach(id => {
+    const sel = document.getElementById('subst-prod-' + id);
+    if (!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = products.map(p =>
+      `<option value="${p.id}">${p.name} (${p.unit})</option>`
+    ).join('') || '<option value="">— Niciun produs cu această categorie —</option>';
+    if (products.find(p => p.id === prev)) sel.value = prev;
+  });
+  updateTreatCalc();
+}
+
 function populateWorkTypeSelect() {
   const sel = document.getElementById('treat-work-type'); if (!sel) return;
   const prev = sel.value;
@@ -1710,10 +1841,12 @@ function addSubstanceRow(prodId = null, dose = '', area = '') {
   const id = gid();
   substanceRows.push(id);
   const container = document.getElementById('substances-list'); if (!container) return;
+  const workType = document.getElementById('treat-work-type')?.value || '';
+  const products = getProductsForWorkType(workType);
   const div = document.createElement('div');
   div.id = 'subst-' + id;
   div.style.cssText = 'background:var(--surface2);border:1px solid var(--border-light);border-radius:8px;padding:10px;margin-bottom:8px;';
-  const opts = state.products.map(p => `<option value="${p.id}" ${prodId===p.id?'selected':''}>${p.name} (${p.unit})</option>`).join('');
+  const opts = products.map(p => `<option value="${p.id}" ${prodId===p.id?'selected':''}>${p.name} (${p.unit})</option>`).join('');
   div.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">Substanță</span>
@@ -2134,7 +2267,7 @@ function doImport() {
     let finalName = `${defaultPrefix} ${rec.index || (idx + 1)}`;
     if (dbf && dbf.rows[idx] && attrNameKey && dbf.rows[idx][attrNameKey]) finalName = dbf.rows[idx][attrNameKey];
     const fid = gid();
-    state.fields.push({ id: fid, name: finalName, areaHectares: rec.areaHectares, geometry: rec.geojson });
+    state.fields.push({ id: fid, name: finalName, areaHectares: Math.round((rec.areaHectares||0)*100)/100, geometry: rec.geojson });
     if (d) {
       d.crops[fid] = { crop: chosenCrop, color: cropColor };
       if (!d.activeFields.includes(fid)) d.activeFields.push(fid);
@@ -2691,7 +2824,7 @@ function executeTask(id) {
     renderTreatFieldPicker(fieldIds);
     updateTreatFieldSummary();
     const sel = document.getElementById('treat-work-type');
-    if (sel && t.type) sel.value = t.type;
+    if (sel && t.type) { sel.value = t.type; filterSubstancesByWorkType(); }
     document.getElementById('treat-date').value = new Date().toISOString().split('T')[0];
     updateTreatCalc();
   }, 150);
@@ -2848,6 +2981,8 @@ function openProductForm() {
    'prod-dose-min','prod-dose-max','prod-active-subst'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
+  const aiRes = document.getElementById('ai-search-result');
+  if (aiRes) { aiRes.style.display = 'none'; aiRes.textContent = ''; }
   document.getElementById('prod-edit-id').value = '';
   document.getElementById('prod-save-btn').textContent = 'Salveaza in Stoc';
   document.getElementById('product-modal').querySelector('.modal-title').textContent = 'Produs Magazie';
@@ -2964,39 +3099,136 @@ function deleteProduct(id) {
   save(); renderProductsView();
 }
 
+let treatmentSelectMode = false;
+let selectedTreatmentIds = new Set();
+let treatmentFilter = 'toate';
+
+function renderTreatmentFilters() {
+  const root = document.getElementById('treatments-filter-chips'); if (!root) return;
+  const d = yd();
+  const list = d ? d.treatments : [];
+  const types = [...new Set(list.map(t => t.workType).filter(Boolean))].sort((a,b) => a.localeCompare(b,'ro'));
+  root.innerHTML = '';
+  ['toate', ...types].forEach(type => {
+    const count = type === 'toate' ? list.length : list.filter(t => t.workType === type).length;
+    const b = document.createElement('button');
+    b.className = 'filter-chip' + (treatmentFilter === type ? ' active' : '');
+    b.textContent = (type === 'toate' ? 'Toate' : type) + (count > 0 ? ' (' + count + ')' : '');
+    b.onclick = () => { treatmentFilter = type; renderTreatmentFilters(); renderTreatmentsView(); };
+    root.appendChild(b);
+  });
+  // buton selectează toate — apare doar în modul selecție cu filtru activ
+  const selAllBar = document.getElementById('treatments-select-all-bar');
+  if (selAllBar) selAllBar.style.display = (treatmentSelectMode && treatmentFilter !== 'toate') ? '' : 'none';
+}
+
+function selectAllFilteredTreatments() {
+  const d = yd(); if (!d) return;
+  const filtered = d.treatments.filter(t => treatmentFilter === 'toate' || t.workType === treatmentFilter);
+  filtered.forEach(t => selectedTreatmentIds.add(t.id));
+  updateTreatmentDeleteBtn();
+  renderTreatmentsView();
+}
+
+function toggleTreatmentSelectMode() {
+  treatmentSelectMode = !treatmentSelectMode;
+  selectedTreatmentIds.clear();
+  const btn = document.getElementById('btn-select-treatments');
+  const delBtn = document.getElementById('btn-delete-selected-treatments');
+  if (btn) {
+    btn.textContent = treatmentSelectMode ? '✕ Anulează' : '☑ Selectează';
+    btn.className = treatmentSelectMode ? 'btn btn-sm btn-orange' : 'btn btn-sm btn-gray';
+  }
+  if (delBtn) delBtn.style.display = 'none';
+  renderTreatmentFilters();
+  renderTreatmentsView();
+}
+
+function updateTreatmentDeleteBtn() {
+  const delBtn = document.getElementById('btn-delete-selected-treatments');
+  if (delBtn) {
+    const count = selectedTreatmentIds.size;
+    delBtn.style.display = count > 0 ? '' : 'none';
+    delBtn.textContent = '🗑 Șterge ' + count + ' lucrări';
+  }
+}
+
+function deleteSelectedTreatments() {
+  if (!selectedTreatmentIds.size) return;
+  if (!confirm('Ștergi ' + selectedTreatmentIds.size + ' lucrări selectate?')) return;
+  const d = yd(); if (!d) return;
+  d.treatments = d.treatments.filter(t => !selectedTreatmentIds.has(t.id));
+  save();
+  treatmentSelectMode = false;
+  selectedTreatmentIds.clear();
+  const btn = document.getElementById('btn-select-treatments');
+  if (btn) { btn.textContent = '☑ Selectează'; btn.className = 'btn btn-sm btn-gray'; }
+  const delBtn = document.getElementById('btn-delete-selected-treatments');
+  if (delBtn) delBtn.style.display = 'none';
+  renderTreatmentsView();
+  updateHeaderStats();
+  if (currentView === 'costs') renderCostsView();
+}
+
 function renderTreatmentsView() {
+  renderTreatmentFilters();
   const root = document.getElementById('treatments-list'); if(!root) return; root.innerHTML = '';
-  const d = yd(); const list = d ? d.treatments : [];
-  if (!list.length) { root.innerHTML = '<div class="no-data">Nicio lucrare înregistrată.</div>'; return; }
+  const d = yd();
+  let list = d ? d.treatments : [];
+  if (treatmentFilter !== 'toate') list = list.filter(t => t.workType === treatmentFilter);
+  if (!list.length) { root.innerHTML = '<div class="no-data">' + (treatmentFilter !== 'toate' ? 'Nicio lucrare de tip "' + treatmentFilter + '".' : 'Nicio lucrare înregistrată.') + '</div>'; return; }
   [...list].sort((a,b) => (b.date||'').localeCompare(a.date||'')).forEach(t => {
     const field = state.fields.find(f => f.id === t.fieldId);
     const substLine = t.substances?.length
       ? t.substances.map(s => `${s.productName} ${s.dose}${s.unit}/ha`).join(', ')
       : (t.productName || '—');
-    root.innerHTML += `<div class="treat-card">
+    const isSelected = selectedTreatmentIds.has(t.id);
+    const card = document.createElement('div');
+    card.className = 'treat-card';
+    if (treatmentSelectMode && isSelected) card.style.cssText = 'background:var(--green-soft);border-left-color:var(--green);border-left-width:4px;outline:1.5px solid var(--green);';
+    card.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
-        <div>
-          <strong style="font-family:var(--font-display);font-size:13px;">${t.workType || 'Lucrare'}</strong>
-          ${t.date ? `<span style="color:var(--muted);font-size:11px;"> · ${fmtPeriod(t.date,t.dateEnd)}</span>` : ''}
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          ${treatmentSelectMode ? `<input type="checkbox" ${isSelected?'checked':''} style="width:16px;height:16px;margin-top:2px;flex-shrink:0;accent-color:var(--green);" onclick="event.stopPropagation();toggleTreatmentSelect('${t.id}')"/>` : ''}
+          <div>
+            <strong style="font-family:var(--font-display);font-size:13px;">${t.workType || 'Lucrare'}</strong>
+            ${t.date ? `<span style="color:var(--muted);font-size:11px;"> · ${fmtPeriod(t.date,t.dateEnd)}</span>` : ''}
+          </div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
           <strong style="color:var(--orange);font-size:13px;">${fmt(t.totalCost)} lei</strong>
-          <button class="btn btn-sm btn-gray" onclick="editTreatment('${t.id}')" style="padding:2px 7px;">✎</button>
+          ${!treatmentSelectMode ? `<button class="btn btn-sm btn-gray" onclick="editTreatment('${t.id}')" style="padding:2px 7px;">✎</button>` : ''}
         </div>
       </div>
       <div style="font-size:11px;color:var(--muted);">📍 ${field?.name || '—'}</div>
       ${substLine !== '—' ? `<div style="font-size:11px;color:var(--text);margin-top:3px;">🧪 ${substLine}</div>` : ''}
       ${t.fuelLiters > 0 ? `<div style="font-size:11px;color:var(--muted);">⛽ ${t.fuelNorm ? fmtN(t.fuelNorm,1)+' L/ha → ' : ''}${t.fuelLiters}L · ${fmt(t.fuelCost)} lei</div>` : ''}
       ${t.tractorName ? `<div style="font-size:11px;color:var(--orange);">🚜 ${t.tractorName}${t.implementName ? ' + ' + t.implementName : ''}</div>` : (t.implementName ? `<div style="font-size:11px;color:var(--blue);">⚙️ ${t.implementName}</div>` : '')}
-      ${t.notes ? `<div style="font-size:11px;color:var(--dim);margin-top:2px;font-style:italic;">${t.notes}</div>` : ''}
-    </div>`;
+      ${t.notes ? `<div style="font-size:11px;color:var(--dim);margin-top:2px;font-style:italic;">${t.notes}</div>` : ''}`;
+    if (treatmentSelectMode) {
+      card.style.cursor = 'pointer';
+      card.onclick = () => toggleTreatmentSelect(t.id);
+    }
+    root.appendChild(card);
   });
+}
+
+function toggleTreatmentSelect(id) {
+  if (selectedTreatmentIds.has(id)) selectedTreatmentIds.delete(id);
+  else selectedTreatmentIds.add(id);
+  updateTreatmentDeleteBtn();
+  renderTreatmentsView();
 }
 function renderDetailTreatments(fieldId) {
   const root = document.getElementById('detail-treatments-list'); if (!root) return;
   root.innerHTML = '';
   const d = yd();
-  const list = d ? d.treatments.filter(t => t.fieldId === fieldId || (t.fieldIds || []).includes(fieldId)) : [];
+  const seen = new Set();
+  const list = d ? d.treatments.filter(t => {
+    if (seen.has(t.id)) return false;
+    if (t.fieldId === fieldId) { seen.add(t.id); return true; }
+    return false;
+  }) : [];
   if (!list.length) { root.innerHTML = '<div class="no-data">Nicio lucrare înregistrată pe această parcelă.</div>'; return; }
 
   // sortăm descrescător după dată
@@ -3163,7 +3395,7 @@ function editTreatment(id) {
     document.getElementById('treat-date').value = t.date||'';
     const dateEnd = document.getElementById('treat-date-end');
     if (dateEnd) dateEnd.value = t.dateEnd||'';
-    if (t.workType) document.getElementById('treat-work-type').value = t.workType;
+    if (t.workType) { document.getElementById('treat-work-type').value = t.workType; filterSubstancesByWorkType(); }
     const tSel = document.getElementById('treat-tractor');
     if (tSel && t.tractorId) tSel.value = t.tractorId;
     const iSel = document.getElementById('treat-implement');
@@ -3225,7 +3457,7 @@ function saveTreatment() {
     const prop = (Number(f.areaHectares)||0) / totalFieldHa;
     const tRecord = {
       id: gid(), date, dateEnd: document.getElementById('treat-date-end') ? document.getElementById('treat-date-end').value : '',
-      fieldId, fieldIds: fieldIds, workType, tractorId, tractorName, implementId, implementName, notes,
+      fieldId, workType, tractorId, tractorName, implementId, implementName, notes,
       substances: substances.map(function(s){return Object.assign({},s,{cost:Math.round(s.cost*prop*100)/100});}),
       fuelNorm: fuelNorm,
       fuelLiters: Math.round(fuelL * prop * 10)/10, fuelPricePerL: dieselP,
@@ -3565,12 +3797,33 @@ function saveMultiCrop() {
 }
 
 // ─── MULTI-SELECT ─────────────────────────────────────────────────────────────
+function selectByCrop(crop) {
+  if (!crop) return;
+  activeFields().forEach(f => {
+    if (fieldCrop(f.id).crop === crop) selectedFieldIds.add(f.id);
+  });
+  // reset select
+  const sel = document.getElementById('ms-crop-select');
+  if (sel) sel.value = '';
+  updateMultiSelectBar();
+  renderMapLayers();
+  renderFieldBar();
+}
+
+function populateMsCropSelect() {
+  const sel = document.getElementById('ms-crop-select'); if (!sel) return;
+  const crops = [...new Set(activeFields().map(f => fieldCrop(f.id).crop))].sort((a,b) => a.localeCompare(b,'ro'));
+  sel.innerHTML = '<option value="">🌱 Cultură...</option>';
+  crops.forEach(c => sel.innerHTML += `<option value="${c}">${c}</option>`);
+}
+
 function toggleMultiSelectMode() {
   multiSelectMode = !multiSelectMode;
   const btn = document.getElementById('btn-multiselect-mode');
   if (multiSelectMode) {
     btn.classList.add('ms-active');
     btn.textContent = '☑ Mod Activ';
+    populateMsCropSelect();
   } else {
     btn.classList.remove('ms-active');
     btn.textContent = '☑ Selecție Multiplă';
