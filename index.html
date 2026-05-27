@@ -1,0 +1,2346 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Smart Farm</title>
+<meta name="description" content="Gestionarea exploatației agricole"/>
+<meta name="theme-color" content="#1a7a3c"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Smart Farm"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#f0f4f0;
+  --surface:#ffffff;
+  --surface2:#f7faf7;
+  --surface3:#eef3ee;
+  --border:#d4ddd4;
+  --border-light:#e8ede8;
+  --green:#1a7a3c;
+  --green-light:#22a050;
+  --green-soft:#e8f5ec;
+  --lime:#84cc16;
+  --amber:#d97706;
+  --blue:#2563eb;
+  --red:#dc2626;
+  --purple:#7c3aed;
+  --orange:#ea580c;
+  --teal:#0d9488;
+  --text:#111827;
+  --text2:#374151;
+  --muted:#6b7280;
+  --dim:#9ca3af;
+  --font-display:'Syne',sans-serif;
+  --font:'DM Sans',sans-serif;
+  --radius:12px;
+  --radius-sm:8px;
+  --shadow:0 1px 3px rgba(0,0,0,0.08),0 4px 12px rgba(0,0,0,0.05);
+  --shadow-md:0 4px 16px rgba(0,0,0,0.10),0 1px 4px rgba(0,0,0,0.06);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font)}
+#app{display:flex;flex-direction:column;height:100%}
+
+/* ── HEADER ─────────────────────────────────────────────────────── */
+#header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;height:52px;
+  background:var(--green);
+  flex-shrink:0;z-index:1000;
+  box-shadow:0 2px 8px rgba(26,122,60,0.25);
+}
+.logo{
+  display:flex;align-items:center;gap:8px;
+  font-family:var(--font-display);font-weight:800;font-size:16px;
+  letter-spacing:.04em;color:#fff;
+}
+.logo-icon{
+  width:28px;height:28px;background:rgba(255,255,255,0.15);
+  border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:16px;backdrop-filter:blur(4px);
+}
+.logo-smart{color:#fff;opacity:.9}
+.logo-farm{color:var(--lime);letter-spacing:.08em}
+#hstats{display:flex;gap:10px;font-size:10px;font-weight:600;letter-spacing:.04em}
+#hstats .hs{color:rgba(255,255,255,0.85)}
+#hstats .ht{color:var(--lime)}
+#hstats .hc{color:#fbbf24}
+
+/* ── NAV ─────────────────────────────────────────────────────────── */
+#nav{
+  display:flex;background:var(--surface);
+  border-bottom:1px solid var(--border-light);
+  flex-shrink:0;overflow-x:auto;
+  padding:6px 10px;gap:4px;
+}
+#nav::-webkit-scrollbar{height:0}
+.nav-btn{
+  flex-shrink:0;padding:6px 12px;
+  background:none;border:none;border-radius:20px;
+  color:var(--muted);cursor:pointer;
+  font-size:11px;font-family:var(--font);font-weight:600;
+  letter-spacing:.02em;transition:all .18s;white-space:nowrap;
+}
+.nav-btn.active{
+  color:var(--green);background:var(--green-soft);
+  font-weight:700;
+}
+
+/* ── MAIN ────────────────────────────────────────────────────────── */
+#main{flex:1;overflow:hidden;display:flex;flex-direction:column;position:relative}
+
+/* ── MAP ─────────────────────────────────────────────────────────── */
+#map-view{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#map-toolbar{
+  display:flex;gap:6px;padding:8px 12px;flex-wrap:wrap;
+  background:var(--surface);border-bottom:1px solid var(--border-light);
+  flex-shrink:0;z-index:500;
+}
+#map-container{flex:1;position:relative}
+#map{width:100%;height:100%}
+#crop-bar{
+  padding:8px 12px;background:var(--surface);
+  border-top:1px solid var(--border-light);flex-shrink:0;display:none;
+}
+#crop-bar-inner{display:flex;height:18px;border-radius:9px;overflow:hidden;gap:2px}
+.crop-segment{height:100%;cursor:default;transition:opacity .15s;border-radius:2px}
+.crop-segment:hover{opacity:0.8}
+#crop-legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;padding:0 2px}
+
+/* ── SCROLL VIEWS ────────────────────────────────────────────────── */
+.scroll-view{
+  flex:1;overflow-y:auto;padding:14px;
+  display:flex;flex-direction:column;gap:10px;
+  background:var(--bg);
+}
+.scroll-view::-webkit-scrollbar{width:4px}
+.scroll-view::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ── FIELD DETAIL ────────────────────────────────────────────────── */
+#field-detail{
+  flex:1;overflow-y:auto;padding:14px;
+  display:flex;flex-direction:column;gap:12px;
+  background:var(--bg);
+}
+.back-btn{
+  background:none;border:none;
+  color:var(--green);cursor:pointer;
+  font-size:20px;padding:0;margin-right:8px;font-weight:bold;
+}
+.detail-header{display:flex;align-items:center}
+.color-dot{width:12px;height:12px;border-radius:4px;flex-shrink:0;margin-right:8px;border:1px solid rgba(0,0,0,0.12)}
+.detail-title{font-size:17px;font-weight:700;font-family:var(--font-display);color:var(--text)}
+.stats-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+  background:var(--surface);border-radius:var(--radius);
+  padding:14px;border:1px solid var(--border-light);
+  box-shadow:var(--shadow);
+}
+.stat-item .stat-label{font-size:9px;color:var(--muted);letter-spacing:.08em;font-weight:700;text-transform:uppercase;margin-bottom:3px}
+.stat-item .stat-val{font-size:14px;font-weight:700;color:var(--text)}
+.section-box{
+  background:var(--surface);border-radius:var(--radius);
+  padding:13px;border:1px solid var(--border-light);
+  box-shadow:var(--shadow);
+}
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.section-title{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.no-data{color:var(--dim);font-size:12px;text-align:center;padding:18px 0}
+
+/* ── CONFIGURATOR ─────────────────────────────────────────────────── */
+.culture-manager-box{
+  background:var(--surface);border:1px solid var(--border-light);
+  border-radius:var(--radius);padding:14px;
+  box-shadow:var(--shadow);
+}
+.culture-item-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 10px;background:var(--surface2);
+  border:1px solid var(--border-light);border-radius:var(--radius-sm);
+  margin-bottom:5px;font-size:12px;transition:background .15s;
+}
+.culture-item-row:hover{background:var(--surface3)}
+
+/* ── TASKS ───────────────────────────────────────────────────────── */
+.filter-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.filter-chips{display:flex;gap:4px;flex-wrap:wrap}
+.filter-chip{
+  padding:4px 11px;border-radius:16px;
+  border:1px solid var(--border);background:var(--surface);
+  color:var(--muted);cursor:pointer;
+  font-size:11px;font-family:var(--font);font-weight:600;
+  white-space:nowrap;transition:all .15s;
+}
+.filter-chip.active{border-color:var(--green);background:var(--green-soft);color:var(--green)}
+.card-list{display:flex;flex-direction:column;gap:8px}
+.task-card{
+  background:var(--surface);border:1px solid var(--border-light);
+  border-left:3px solid;border-radius:var(--radius);
+  padding:10px 13px;color:var(--text);
+  box-shadow:var(--shadow);transition:box-shadow .15s;
+}
+.task-card:hover{box-shadow:var(--shadow-md)}
+
+/* ── PRODUCTS & TREATMENTS ───────────────────────────────────────── */
+.prod-card{
+  background:var(--surface);border:1px solid var(--border-light);
+  border-left:3px solid var(--purple);border-radius:var(--radius);
+  padding:11px 13px;box-shadow:var(--shadow);
+}
+.treat-card{
+  background:var(--surface);border:1px solid var(--border-light);
+  border-left:3px solid var(--teal);border-radius:var(--radius);
+  padding:11px 13px;box-shadow:var(--shadow);
+}
+
+/* ── COSTS ───────────────────────────────────────────────────────── */
+.cost-summary{
+  background:var(--surface);border-radius:var(--radius);
+  padding:16px;border:1px solid var(--border-light);
+  box-shadow:var(--shadow);
+}
+.cost-total{
+  font-size:26px;font-weight:800;font-family:var(--font-display);
+  color:var(--text);margin-bottom:2px;
+}
+.cost-label{font-size:10px;color:var(--muted);letter-spacing:.1em;font-weight:700;text-transform:uppercase}
+.field-cost-card{
+  background:var(--surface);border-radius:var(--radius-sm);
+  padding:11px 14px;border:1px solid var(--border-light);
+  display:flex;justify-content:space-between;align-items:center;
+  box-shadow:var(--shadow);
+}
+.field-cost-val{font-size:15px;font-weight:800;color:var(--orange)}
+
+/* ── BUTTONS ─────────────────────────────────────────────────────── */
+.btn{
+  padding:7px 14px;border-radius:var(--radius-sm);border:1px solid;
+  background:#fff;cursor:pointer;
+  font-size:12px;font-family:var(--font);font-weight:600;
+  white-space:nowrap;transition:all .15s;letter-spacing:.01em;
+}
+.btn:active{transform:scale(.97)}
+.btn-sm{padding:4px 9px;font-size:11px;border-radius:6px}
+.btn-green{border-color:var(--green);color:var(--green);background:var(--green-soft)}
+.btn-green:hover{background:#d1ead9;border-color:var(--green-light)}
+.btn-yellow{border-color:var(--amber);color:var(--amber);background:#fffbeb}
+.btn-yellow:hover{background:#fef3c7}
+.btn-blue{border-color:var(--blue);color:var(--blue);background:#eff6ff}
+.btn-blue:hover{background:#dbeafe}
+.btn-red{border-color:var(--red);color:var(--red);background:#fef2f2}
+.btn-red:hover{background:#fee2e2}
+.btn-purple{border-color:var(--purple);color:var(--purple);background:#f5f3ff}
+.btn-purple:hover{background:#ede9fe}
+.btn-gray{border-color:var(--border);color:var(--muted);background:var(--surface2)}
+.btn-gray:hover{background:var(--surface3)}
+.btn-orange{border-color:var(--orange);color:var(--orange);background:#fff7ed}
+.btn-orange:hover{background:#ffedd5}
+
+/* ── MODALS ──────────────────────────────────────────────────────── */
+.modal-overlay{
+  position:fixed;inset:0;z-index:2000;
+  background:rgba(17,24,39,0.45);backdrop-filter:blur(4px);
+  display:flex;align-items:flex-end;
+}
+.modal-box{
+  width:100%;max-height:92vh;overflow-y:auto;
+  background:var(--surface);
+  border-radius:20px 20px 0 0;
+  padding:20px 16px 36px;
+  box-shadow:0 -8px 40px rgba(0,0,0,0.15);
+}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.modal-title{
+  font-size:16px;font-weight:700;
+  font-family:var(--font-display);
+  color:var(--green);
+}
+.modal-close{
+  background:var(--surface2);border:none;color:var(--muted);
+  cursor:pointer;font-size:16px;font-weight:bold;
+  width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+}
+.field-label{
+  font-size:10px;color:var(--muted);letter-spacing:.08em;
+  font-weight:700;text-transform:uppercase;
+  display:block;margin-bottom:4px;
+}
+.field-input{
+  width:100%;padding:9px 11px;border-radius:var(--radius-sm);
+  border:1.5px solid var(--border);background:var(--surface2);
+  color:var(--text);font-family:var(--font);font-size:13px;
+  outline:none;transition:border-color .15s,background .15s;
+}
+.field-input:focus{border-color:var(--green);background:var(--surface);box-shadow:0 0 0 3px rgba(26,122,60,0.1)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.color-picker{display:flex;gap:7px;flex-wrap:wrap}
+.color-swatch{width:26px;height:26px;border-radius:7px;border:2px solid transparent;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.15);transition:transform .15s}
+.color-swatch.selected{border-color:var(--text);transform:scale(1.15)}
+.drop-zone{
+  border:2px dashed var(--border);border-radius:var(--radius);
+  padding:20px;text-align:center;background:var(--surface2);
+  cursor:pointer;margin-bottom:12px;transition:all .15s;
+}
+.drop-zone:hover{border-color:var(--green);background:var(--green-soft)}
+.error-box{color:var(--red);font-size:12px;background:#fef2f2;padding:10px 13px;border-radius:var(--radius-sm);border:1px solid #fecaca}
+.calc-preview{
+  background:var(--green-soft);border:1px solid #bbf7d0;
+  border-radius:var(--radius-sm);padding:10px 13px;
+  font-size:12px;color:var(--green);margin-top:8px;font-weight:500;
+}
+.preview-box{background:var(--surface2);border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px}
+
+/* ── MAP LABELS ──────────────────────────────────────────────────── */
+.map-permanent-label{
+  background:rgba(255,255,255,0.92) !important;
+  border:1.5px solid rgba(0,0,0,0.18) !important;
+  border-radius:6px !important;color:#111 !important;
+  font-family:var(--font) !important;font-weight:700 !important;
+  font-size:11px !important;padding:2px 7px !important;
+  box-shadow:0 2px 6px rgba(0,0,0,0.15) !important;
+  text-align:center;white-space:nowrap;backdrop-filter:blur(2px);
+}
+
+/* ── MULTI-SELECT BAR ────────────────────────────────────────────── */
+#multiselect-bar{
+  position:absolute;bottom:56px;left:50%;transform:translateX(-50%);
+  z-index:900;background:var(--surface);
+  border:2px solid var(--orange);border-radius:20px;
+  padding:9px 16px;display:flex;align-items:center;gap:10px;
+  box-shadow:0 8px 24px rgba(0,0,0,0.18);white-space:nowrap;
+}
+#multiselect-bar.hidden{display:none}
+#ms-info{font-size:12px;font-weight:700;color:var(--orange)}
+#btn-multiselect-mode.ms-active{border-color:var(--orange);color:var(--orange);background:#fff7ed}
+
+/* ── LEAFLET ─────────────────────────────────────────────────────── */
+.leaflet-container{background:#e8f0e8}
+.leaflet-bar{border:1px solid var(--border) !important;box-shadow:var(--shadow) !important;border-radius:var(--radius-sm) !important;overflow:hidden}
+.leaflet-bar a{background-color:var(--surface) !important;color:var(--text) !important;border-bottom:1px solid var(--border-light) !important}
+.leaflet-popup-content-wrapper{
+  background:var(--surface);color:var(--text);
+  border:1px solid var(--border-light);border-radius:var(--radius);
+  box-shadow:var(--shadow-md);
+}
+.leaflet-popup-content{margin:12px 16px;font-family:var(--font);font-size:12px;color:var(--text)}
+.popup-name{font-weight:700;font-family:var(--font-display);font-size:14px;color:var(--green);margin-bottom:4px}
+/* ── AUTH SCREEN ─────────────────────────────────────────────────── */
+#auth-screen{
+  position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,#0f3d1f 0%,#1a7a3c 50%,#14532d 100%);
+  display:flex;align-items:center;justify-content:center;padding:24px;
+}
+#auth-box{
+  width:100%;max-width:360px;
+  background:rgba(255,255,255,0.97);
+  border-radius:20px;padding:28px 24px 32px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.3);
+}
+.auth-logo{text-align:center;margin-bottom:24px}
+.auth-logo-icon{font-size:36px;display:block;margin-bottom:8px}
+.auth-logo-title{font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--green)}
+.auth-logo-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.auth-tabs{display:flex;gap:4px;background:var(--surface2);border-radius:10px;padding:4px;margin-bottom:20px}
+.auth-tab{flex:1;padding:7px;border:none;background:none;border-radius:7px;font-family:var(--font);font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s}
+.auth-tab.active{background:var(--surface);color:var(--green);box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+.auth-field{margin-bottom:14px}
+.auth-field label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px}
+.auth-field input{
+  width:100%;padding:11px 13px;border-radius:10px;
+  border:1.5px solid var(--border);background:var(--surface2);
+  font-family:var(--font);font-size:14px;color:var(--text);outline:none;
+  transition:border-color .15s;
+}
+.auth-field input:focus{border-color:var(--green);background:#fff;box-shadow:0 0 0 3px rgba(26,122,60,0.1)}
+.auth-btn{
+  width:100%;padding:13px;border:none;border-radius:10px;
+  background:var(--green);color:#fff;
+  font-family:var(--font-display);font-size:15px;font-weight:700;
+  cursor:pointer;transition:all .15s;margin-top:4px;letter-spacing:.02em;
+}
+.auth-btn:hover{background:var(--green-light);transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,122,60,0.3)}
+.auth-btn:active{transform:translateY(0)}
+.auth-btn:disabled{opacity:.6;cursor:default;transform:none}
+.auth-msg{font-size:12px;text-align:center;margin-top:12px;padding:8px 12px;border-radius:8px;display:none}
+.auth-msg.error{background:#fef2f2;color:var(--red);display:block}
+.auth-msg.success{background:var(--green-soft);color:var(--green);display:block}
+.auth-msg.info{background:#eff6ff;color:var(--blue);display:block}
+
+/* ── SYNC INDICATOR ──────────────────────────────────────────────── */
+#sync-indicator{
+  position:fixed;bottom:16px;right:16px;z-index:1500;
+  background:var(--surface);border:1px solid var(--border-light);
+  border-radius:20px;padding:6px 12px;font-size:11px;font-weight:600;
+  display:flex;align-items:center;gap:6px;
+  box-shadow:var(--shadow-md);opacity:0;
+  transition:opacity .3s;pointer-events:none;
+}
+#sync-indicator.show{opacity:1}
+#sync-dot{width:7px;height:7px;border-radius:50%;background:var(--dim)}
+#sync-indicator.syncing #sync-dot{background:var(--amber);animation:pulse 1s infinite}
+#sync-indicator.synced #sync-dot{background:var(--green)}
+#sync-indicator.error #sync-dot{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── USER MENU ───────────────────────────────────────────────────── */
+#user-menu-btn{
+  background:rgba(255,255,255,0.15);border:none;
+  color:#fff;border-radius:8px;padding:4px 8px;
+  font-size:11px;font-weight:600;font-family:var(--font);
+  cursor:pointer;display:flex;align-items:center;gap:5px;
+  transition:background .15s;
+}
+#user-menu-btn:hover{background:rgba(255,255,255,0.25)}
+</style>
+</head>
+<body>
+
+<!-- ── AUTH SCREEN ── -->
+<div id="auth-screen">
+  <div id="auth-box">
+    <div class="auth-logo">
+      <span class="auth-logo-icon">🌿</span>
+      <div class="auth-logo-title">SMART FARM</div>
+      <div class="auth-logo-sub">Gestionarea exploatației agricole</div>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="showAuthTab('login')">Autentificare</button>
+      <button class="auth-tab" id="tab-register" onclick="showAuthTab('register')">Cont nou</button>
+    </div>
+    <div id="auth-login">
+      <div class="auth-field"><label>Email</label><input type="email" id="login-email" placeholder="email@exemplu.ro" autocomplete="email"/></div>
+      <div class="auth-field"><label>Parolă</label><input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"/></div>
+      <button class="auth-btn" id="login-btn" onclick="doLogin()">Intră în cont</button>
+    </div>
+    <div id="auth-register" style="display:none">
+      <div class="auth-field"><label>Email</label><input type="email" id="reg-email" placeholder="email@exemplu.ro" autocomplete="email"/></div>
+      <div class="auth-field"><label>Parolă</label><input type="password" id="reg-pass" placeholder="Minim 6 caractere" autocomplete="new-password"/></div>
+      <div class="auth-field"><label>Confirmă parola</label><input type="password" id="reg-pass2" placeholder="••••••••" autocomplete="new-password"/></div>
+      <button class="auth-btn" id="reg-btn" onclick="doRegister()">Creează cont</button>
+    </div>
+    <div id="auth-msg" class="auth-msg"></div>
+  </div>
+</div>
+
+<!-- ── SYNC INDICATOR ── -->
+<div id="sync-indicator">
+  <div id="sync-dot"></div>
+  <span id="sync-text">Sincronizat</span>
+</div>
+
+<div id="app">
+  <div id="header">
+    <div class="logo">
+      <div class="logo-icon">🌿</div>
+      <span><span class="logo-smart">SMART</span> <span class="logo-farm">FARM</span></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <select id="year-selector" class="field-input" style="font-size:11px;font-weight:700;padding:3px 6px;height:28px;border-color:var(--green);color:var(--green);background:var(--surface);width:auto;cursor:pointer;" onchange="switchYear(this.value)"></select>
+      <button class="btn btn-sm btn-green" style="height:28px;padding:0 7px;font-size:13px;" onclick="showYearModal()" title="Gestionează ani agricoli">＋</button>
+    </div>
+    <div id="hstats">
+      <span class="hs" id="stat-fields">0 câmp.</span>
+      <span class="ht" id="stat-tasks">0 active</span>
+      <span class="hc" id="stat-cost">0 lei</span>
+    </div>
+    <button id="user-menu-btn" onclick="showUserMenu()">👤 <span id="user-email-short"></span></button>
+  </div>
+  <div id="nav">
+    <button class="nav-btn active" id="nav-map" onclick="switchView('map')">🗺 Hartă</button>
+    <button class="nav-btn" id="nav-tasks" onclick="switchView('tasks')">✅ Sarcini</button>
+    <button class="nav-btn" id="nav-products" onclick="switchView('products')">🧪 Produse</button>
+    <button class="nav-btn" id="nav-treatments" onclick="switchView('treatments')">💊 Tratamente</button>
+    <button class="nav-btn" id="nav-costs" onclick="switchView('costs')">📊 Costuri</button>
+    <button class="nav-btn" id="nav-settings" onclick="switchView('settings')">⚙️ Setări</button>
+  </div>
+  
+  <div id="main">
+    <div id="map-view">
+      <div id="map-toolbar">
+        <button class="btn btn-blue" onclick="showImport()">📂 Import SHP</button>
+        <button class="btn btn-green" onclick="zoomToAllFields()">🔍 Ansamblu</button>
+        <button class="btn btn-gray" id="btn-multiselect-mode" onclick="toggleMultiSelectMode()">☑ Selecție</button>
+        <button class="btn btn-gray" id="btn-labels" onclick="toggleLabels()" title="Afișează/ascunde etichete">🏷 Etichete</button>
+      </div>
+      <div id="map-container">
+        <div id="map"></div>
+        <div id="multiselect-bar" class="hidden">
+          <span id="ms-info">0 parcele · 0.00 ha</span>
+          <button class="btn btn-sm btn-green" onclick="openMultiCropForm()">🌱 Schimbă Cultura</button>
+          <button class="btn btn-sm btn-orange" onclick="openMultiTreatmentForm()">💊 Aplică Tratament</button>
+          <button class="btn btn-sm btn-gray" onclick="clearMultiSelection()">✕ Golește</button>
+        </div>
+      </div>
+      <div id="crop-bar">
+        <div id="crop-bar-inner"></div>
+        <div id="crop-legend"></div>
+      </div>
+    </div>
+
+    <div id="field-detail" style="display:none;">
+      <div class="detail-header" style="display: flex; flex-direction: column; gap: 8px; width: 100%; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+        <div style="display: flex; align-items: center; width: 100%;">
+          <button class="back-btn" onclick="closeDetail()">←</button>
+          <div class="color-dot" id="detail-dot"></div>
+          <div class="detail-title" id="detail-name" style="flex: 1;"></div>
+          <button class="btn btn-sm btn-gray" onclick="editFieldName()">✎ Redenumește</button>
+        </div>
+        <div style="grid-template-columns: 1fr 1fr; gap: 12px; margin-left: 28px; width: calc(100% - 28px); display: grid;">
+          <div>
+            <label class="field-label">SCHIMBĂ CULTURA:</label>
+            <select class="field-input" id="detail-crop-select" onchange="changeFieldCrop(this.value)"></select>
+          </div>
+          <div>
+            <label class="field-label">CULOARE POLIGON:</label>
+            <div class="color-picker" id="detail-color-picker"></div>
+          </div>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-item"><div class="stat-label">CULTURĂ</div><div class="stat-val" id="detail-crop" style="color:var(--green)"></div></div>
+        <div class="stat-item"><div class="stat-label">SUPRAFAȚĂ REALĂ</div><div class="stat-val" id="detail-area" style="color:var(--blue)"></div></div>
+        <div class="stat-item"><div class="stat-label">FINANCIAR TRATAMENTE</div><div class="stat-val" id="detail-cost" style="color:var(--yellow)"></div></div>
+      </div>
+      <div>
+        <div class="section-header"><span class="section-title">SARCINI PARCELĂ</span><button class="btn btn-sm btn-yellow" onclick="openTaskForm()">+ Adaugă</button></div>
+        <div id="detail-tasks-list" class="card-list"></div>
+      </div>
+      <div>
+        <div class="section-header"><span class="section-title">REGISTRU SUBSTANȚE</span><button class="btn btn-sm btn-blue" onclick="openTreatmentForm()">+ Adaugă</button></div>
+        <div id="detail-treatments-list" class="card-list"></div>
+      </div>
+      <button class="btn btn-red" style="margin-top:20px" onclick="deleteCurrentField()">🗑 Șterge definitiv parcela</button>
+    </div>
+
+    <div id="tasks-view" class="scroll-view" style="display:none">
+      <div class="filter-row"><div class="filter-chips" id="filter-chips"></div><button class="btn btn-sm btn-green" onclick="openTaskForm()">+ Sarcină</button></div>
+      <div id="tasks-list" class="card-list"></div>
+    </div>
+
+    <div id="products-view" class="scroll-view" style="display:none">
+      <div class="filter-row"><div class="filter-chips" id="prod-filter-chips"></div><button class="btn btn-sm btn-purple" onclick="openProductForm()">+ Produs Magazie</button></div>
+      <div id="products-list" class="card-list"></div>
+    </div>
+
+    <div id="treatments-view" class="scroll-view" style="display:none">
+      <div class="filter-row">
+        <span style="font-size:12px;color:var(--muted);font-weight:700">JURNAL TEHNOLOGIC TRATAMENTE</span>
+        <button class="btn btn-sm btn-blue" onclick="openTreatmentForm()">+ Execută Tratament</button>
+      </div>
+      <div id="treatments-list" class="card-list"></div>
+    </div>
+
+    <div id="costs-view" class="scroll-view" style="display:none">
+      <div id="costs-content"></div>
+      <div id="stats-content"></div>
+    </div>
+
+    <div id="settings-view" class="scroll-view" style="display:none">
+
+      <div class="culture-manager-box">
+        <span style="font-size:11px;font-weight:800;color:var(--green);letter-spacing:.06em;display:block;margin-bottom:8px;">🌱 CULTURI</span>
+        <div style="display:flex;gap:6px;margin-bottom:10px;">
+          <input type="text" class="field-input" id="new-culture-name" placeholder="Nume cultură nouă" style="flex:1;background:#fff;"/>
+          <input type="color" id="new-culture-color" value="#16a34a" style="width:34px;height:34px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:#fff;padding:2px;"/>
+          <button class="btn btn-green" onclick="addNewCustomCulture()">+ Adaugă</button>
+        </div>
+        <div id="custom-cultures-list"></div>
+      </div>
+
+      <div class="culture-manager-box">
+        <span style="font-size:11px;font-weight:800;color:var(--purple);letter-spacing:.06em;display:block;margin-bottom:8px;">🧪 CATEGORII PRODUSE</span>
+        <div style="display:flex;gap:6px;margin-bottom:10px;">
+          <input type="text" class="field-input" id="new-prodcat-name" placeholder="Categorie nouă..." style="flex:1;background:#fff;"/>
+          <button class="btn btn-purple" onclick="addProductCategory()">+ Adaugă</button>
+        </div>
+        <div id="prodcat-list"></div>
+      </div>
+
+      <div class="culture-manager-box">
+        <span style="font-size:11px;font-weight:800;color:var(--blue);letter-spacing:.06em;display:block;margin-bottom:8px;">📐 UNITĂȚI DE MĂSURĂ</span>
+        <div style="display:flex;gap:6px;margin-bottom:10px;">
+          <input type="text" class="field-input" id="new-produnit-name" placeholder="Unitate nouă (ex: mc, buc)..." style="flex:1;background:#fff;"/>
+          <button class="btn btn-blue" onclick="addProductUnit()">+ Adaugă</button>
+        </div>
+        <div id="produnit-list"></div>
+      </div>
+
+      <div class="culture-manager-box">
+        <span style="font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.06em;display:block;margin-bottom:10px;">💾 DATE & BACKUP</span>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button class="btn btn-green" onclick="forceSyncNow()">☁ Sincronizează acum cu cloud</button>
+          <button class="btn btn-purple" onclick="exportBackup()">💾 Exportă Backup JSON</button>
+          <label class="btn btn-yellow" style="display:block;text-align:center;cursor:pointer;">
+            📂 Încarcă Backup JSON <input type="file" accept=".json" style="display:none" onchange="importBackup(this)"/>
+          </label>
+          <button class="btn btn-red" id="btn-reset-settings" onclick="resetAll()" style="display:none">🗑 Resetează toate datele</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="multicrop-modal" style="display:none" onclick="if(event.target===this)hideMultiCropForm()">
+  <div class="modal-box" style="max-height:60vh;">
+    <div class="modal-header"><div class="modal-title">🌱 Schimbă Cultura — Selecție Multiplă</div><button class="modal-close" onclick="hideMultiCropForm()">✕</button></div>
+    <div class="modal-body">
+      <div id="multicrop-note" style="font-size:11px;color:var(--orange);background:#ea580c0a;border:1px solid var(--orange);border-radius:6px;padding:6px 8px;margin-bottom:12px;"></div>
+      <div style="margin-bottom:14px;">
+        <label class="field-label">Cultura nouă</label>
+        <select class="field-input" id="multicrop-select" style="font-size:14px;"></select>
+      </div>
+      <button class="btn btn-green" style="width:100%;padding:10px;" onclick="saveMultiCrop()">✓ Aplică pe toate parcelele selectate</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="year-modal" style="display:none" onclick="if(event.target===this)hideYearModal()">
+  <div class="modal-box" style="max-height:80vh;">
+    <div class="modal-header"><div class="modal-title">📅 Ani Agricoli</div><button class="modal-close" onclick="hideYearModal()">✕</button></div>
+    <div class="modal-body">
+      <div style="display:flex;gap:6px;margin-bottom:12px;">
+        <input type="text" class="field-input" id="new-year-name" placeholder="ex: 2024-2025" style="flex:1;background:#fff;"/>
+        <button class="btn btn-green" onclick="addAgriYear()">+ Adaugă</button>
+      </div>
+      <div id="year-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="import-modal" style="display:none" onclick="if(event.target===this)hideImport()">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title">📂 Import Contururi Shapefile</div><button class="modal-close" onclick="hideImport()">✕</button></div>
+    <div class="modal-body">
+      <div class="drop-zone" id="drop-zone" ondrop="handleDrop(event)" ondragover="event.preventDefault();" onclick="document.getElementById('folder-input').click()" style="cursor:pointer;">
+        <div style="font-size:28px;">📂</div>
+        <div style="font-size:12px;color:var(--green);font-weight:700;margin-top:4px;">Click sau trage folderul / fișierele aici</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px;">.shp · .dbf · .prj · .shx — selectează tot folderul</div>
+        <input type="file" id="folder-input" webkitdirectory multiple accept=".shp,.dbf,.prj,.shx" style="display:none" onchange="handleFolderInput(this.files)"/>
+      </div>
+      <div id="import-file-status" style="display:none;font-size:11px;margin-bottom:8px;display:flex;gap:10px;flex-wrap:wrap;padding:6px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;">
+        <span id="status-shp" style="color:var(--dim)">⬜ .shp</span>
+        <span id="status-dbf" style="color:var(--dim)">⬜ .dbf</span>
+        <span id="status-prj" style="color:var(--dim)">⬜ .prj</span>
+        <span id="status-shx" style="color:var(--dim)">⬜ .shx</span>
+      </div>
+      <div id="import-loading" style="display:none; color:var(--muted); font-size:12px;">⟳ Se procesează geometria...</div>
+      <div id="import-error" class="error-box" style="display:none"></div>
+      
+      <div id="import-preview" style="display:none">
+        <div class="preview-box">
+          <div style="color:var(--green);font-weight:700; font-size:12px;">✓ Elemente geometrice identificate</div>
+          <div id="prev-counts" style="font-size:12px; font-weight:700;"></div>
+        </div>
+        <div class="two-col" style="margin-bottom:10px;">
+          <div><label class="field-label">Coloană Nume din DBF</label><select class="field-input" id="import-name-field"></select></div>
+          <div><label class="field-label">Prefix implicit</label><input class="field-input" id="import-default-name" value="Parcela"/></div>
+        </div>
+        <div style="margin-bottom:14px;">
+          <label class="field-label">Asociază Cultura inițială</label>
+          <select class="field-input" id="import-crop"></select>
+        </div>
+        <div class="modal-actions"><button class="btn btn-green" style="width:100%; padding:10px;" onclick="doImport()">✓ Finalizează Importul</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="task-modal" style="display:none" onclick="if(event.target===this)hideTaskForm()">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title">Sarcini Lucrări</div><button class="modal-close" onclick="hideTaskForm()">✕</button></div>
+    <div class="modal-body">
+      <div style="margin-bottom:8px;"><label class="field-label">Denumire lucrare *</label><input class="field-input" id="task-title"/></div>
+      <div class="two-col" style="margin-bottom:8px;">
+        <div><label class="field-label">Tip</label><select class="field-input" id="task-type"><option>Erbicidare</option><option>Fertilizare</option><option>Semănat</option><option>Recoltare</option><option>Arătură</option></select></div>
+        <div><label class="field-label">Prioritate</label><select class="field-input" id="task-priority"><option>Normal</option><option>Ridicat</option><option>Urgent</option></select></div>
+      </div>
+      <div style="margin-bottom:8px;"><label class="field-label">Parcelă asociată</label><select class="field-input" id="task-field-id"></select></div>
+      <div class="two-col" style="margin-bottom:14px;">
+        <div><label class="field-label">Termen</label><input type="date" class="field-input" id="task-due"/></div>
+        <div><label class="field-label">Status</label><select class="field-input" id="task-status"><option>În așteptare</option><option>În progres</option><option>Finalizat</option></select></div>
+      </div>
+      <div class="modal-actions"><button class="btn btn-green" style="width:100%;" onclick="saveTask()">Salvează Lucrarea</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="product-modal" style="display:none" onclick="if(event.target===this)hideProductForm()">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title">Produs Magazie</div><button class="modal-close" onclick="hideProductForm()">✕</button></div>
+    <div class="modal-body">
+      <div style="margin-bottom:8px;"><label class="field-label">Denumire substanță *</label><input class="field-input" id="prod-name"/></div>
+      <div class="two-col" style="margin-bottom:8px;">
+        <div><label class="field-label">Categorie</label><select class="field-input" id="prod-cat"></select></div>
+        <div><label class="field-label">Unitate</label><select class="field-input" id="prod-unit"></select></div>
+      </div>
+      <div class="two-col" style="margin-bottom:14px;">
+        <div><label class="field-label">Stoc disponibil</label><input type="number" class="field-input" id="prod-stock" step="0.01"/></div>
+        <div><label class="field-label">Preț per unitate (lei)</label><input type="number" class="field-input" id="prod-price" step="0.01"/></div>
+      </div>
+      <div class="modal-actions"><button class="btn btn-purple" style="width:100%;" onclick="saveProduct()">Salvează în Stoc</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="treatment-modal" style="display:none" onclick="if(event.target===this)hideTreatmentForm()">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title">Evidență Aplicare</div><button class="modal-close" onclick="hideTreatmentForm()">✕</button></div>
+    <div class="modal-body">
+      <div class="two-col" style="margin-bottom:8px;">
+        <div><label class="field-label">Dată</label><input type="date" class="field-input" id="treat-date"/></div>
+        <div><label class="field-label">Parcelă</label><select class="field-input" id="treat-field-id"></select></div>
+      </div>
+      <div style="margin-bottom:8px;"><label class="field-label">Produs folosit</label><select class="field-input" id="treat-product-id" onchange="updateTreatCalc()"></select></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:10px;">
+        <div><label class="field-label">Doză (/ha)</label><input type="number" class="field-input" id="treat-dose" step="0.01" oninput="updateTreatCalc()"/></div>
+        <div><label class="field-label">U.M.</label><span id="treat-unit-lbl" style="font-size:12px; line-height:30px; font-weight:bold;">-</span></div>
+        <div><label class="field-label">Suprafață (ha)</label><input type="number" class="field-input" id="treat-area" step="0.01" oninput="updateTreatCalc()"/></div>
+      </div>
+      <div class="calc-preview" id="treat-calc">Introdu valorile...</div>
+      <div class="modal-actions" style="margin-top:14px;"><button class="btn btn-blue" style="width:100%;" onclick="saveMultiTreatment()">Înregistrează Operațiunea</button></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPA_URL = 'https://ambmovjkxcmnrzdkaads.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtYm1vdmpreGNtbnJ6ZGthYWRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MzE2NDcsImV4cCI6MjA5NTQwNzY0N30.ptFMYUAGKkdOlMC_Pk2u7fJZgFs1x4hkGFZ1xFTbYPs';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+const SK = 'smartfarm_v1';
+let currentUser = null;
+let syncTimeout = null;
+let pendingSync = false;
+const COLORS = ['#16a34a','#ca8a04','#ea580c','#2563eb','#9333ea','#dc2626','#0d9488','#854d0e','#6b21a8','#0369a1'];
+
+let DEFAULT_CULTURES = {
+  'Grâu': '#ca8a04', 
+  'Porumb': '#16a34a', 
+  'Rapiță': '#9333ea', 
+  'Floarea-soarelui': '#ea580c',
+  'Orz': '#d97706', 
+  'Altele': '#64748b'
+};
+
+const DEFAULT_PRODUCT_CATEGORIES = ['Erbicid', 'Fungicid', 'Insecticid', 'Îngrășământ', 'Regulator'];
+const DEFAULT_PRODUCT_UNITS = ['L', 'kg', 'g', 'ml', 't', 'buc'];
+
+let state = {
+  fields: [],        // geometrie permanentă: {id, name, areaHectares, geometry}
+  products: [],      // magazie globală
+  cultures: { ...DEFAULT_CULTURES },
+  productCategories: [...DEFAULT_PRODUCT_CATEGORIES],
+  productUnits: [...DEFAULT_PRODUCT_UNITS],
+  years: [],         // [{id, name}]
+  activeYear: null,
+  yearData: {}       // {yearId: {crops:{fieldId:{crop,color}}, treatments:[], tasks:[], activeFields:[...fieldIds]}}
+};
+
+// Helper: returnează yearData pentru un an (creează dacă nu există)
+function yd(yearId) {
+  const yid = yearId !== undefined ? yearId : state.activeYear;
+  if (!yid) return null;
+  if (!state.yearData[yid]) state.yearData[yid] = { crops: {}, treatments: [], tasks: [], activeFields: [] };
+  return state.yearData[yid];
+}
+// Cultura+culoarea unei parcele în contextul anului activ
+function fieldCrop(fieldId, yearId) {
+  const d = yd(yearId);
+  if (d && d.crops[fieldId]) return d.crops[fieldId];
+  return { crop: 'Altele', color: state.cultures['Altele'] || '#64748b' };
+}
+// Parcelele active în anul curent
+function activeFields() {
+  const d = yd();
+  if (!d) return state.fields; // fără ani = toate
+  if (!d.activeFields || !d.activeFields.length) return state.fields; // dacă nu e restricționat
+  return state.fields.filter(f => d.activeFields.includes(f.id));
+}
+
+let map, layersGroup;
+let currentView = 'map';
+let selectedFieldId = null;
+let taskFilter = 'toate';
+let importPreviewData = null;
+let multiSelectMode = false;
+let selectedFieldIds = new Set();
+
+function gid(){return Math.random().toString(36).substr(2,9)}
+function fmt(n){return Number(n||0).toLocaleString('ro-RO',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function fmtN(n,d=2){return Number(n||0).toFixed(d)}
+
+// ── SAVE / LOAD ───────────────────────────────────────────────────────────────
+function save() {
+  try { localStorage.setItem(SK, JSON.stringify(state)); } catch{}
+  // sync cloud cu debounce 2s
+  if (currentUser) {
+    clearTimeout(syncTimeout);
+    showSync('syncing', 'Se salvează...');
+    syncTimeout = setTimeout(() => syncToCloud(), 2000);
+  }
+}
+
+function load() {
+  try {
+    const s = localStorage.getItem(SK);
+    if (s) applyRawState(JSON.parse(s));
+  } catch(e) {
+    state.cultures = { ...DEFAULT_CULTURES };
+    state.productCategories = [...DEFAULT_PRODUCT_CATEGORIES];
+    state.productUnits = [...DEFAULT_PRODUCT_UNITS];
+  }
+}
+
+function applyRawState(raw) {
+  // migrare date vechi
+  if (raw.fields && raw.fields.length && raw.fields[0].crop !== undefined && !raw.yearData) {
+    const migId = gid();
+    const crops = {};
+    raw.fields.forEach(f => { crops[f.id] = { crop: f.crop || 'Altele', color: f.color || '#64748b' }; });
+    const activeFieldIds = raw.fields.map(f => f.id);
+    raw.fields = raw.fields.map(({ id, name, areaHectares, geometry }) => ({ id, name, areaHectares, geometry }));
+    raw.yearData = { [migId]: { crops, treatments: raw.treatments || [], tasks: raw.tasks || [], activeFields: activeFieldIds } };
+    raw.years = [{ id: migId, name: 'Sezon importat' }];
+    raw.activeYear = migId;
+  }
+  state = raw;
+  if (!state.cultures || !Object.keys(state.cultures).length) state.cultures = { ...DEFAULT_CULTURES };
+  if (!state.productCategories || !state.productCategories.length) state.productCategories = [...DEFAULT_PRODUCT_CATEGORIES];
+  if (!state.productUnits || !state.productUnits.length) state.productUnits = [...DEFAULT_PRODUCT_UNITS];
+  if (!state.years) state.years = [];
+  if (!state.yearData) state.yearData = {};
+  if (!state.activeYear && state.years.length) state.activeYear = state.years[0].id;
+}
+
+// ── SUPABASE SYNC ─────────────────────────────────────────────────────────────
+async function syncToCloud() {
+  if (!currentUser) return;
+  try {
+    const { error } = await supa.from('farm_data').upsert({
+      user_id: currentUser.id,
+      data: state
+    }, { onConflict: 'user_id' });
+    if (error) throw error;
+    showSync('synced', 'Sincronizat');
+    setTimeout(() => hideSync(), 2500);
+  } catch(e) {
+    showSync('error', 'Eroare sync');
+    setTimeout(() => hideSync(), 4000);
+  }
+}
+
+async function loadFromCloud() {
+  if (!currentUser) return false;
+  try {
+    showSync('syncing', 'Se încarcă...');
+    const { data, error } = await supa.from('farm_data')
+      .select('data, updated_at')
+      .eq('user_id', currentUser.id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+
+    if (data && data.data && data.data.fields) {
+      // cloud are date — le folosim indiferent ce e local
+      applyRawState(data.data);
+      localStorage.setItem(SK, JSON.stringify(state));
+      showSync('synced', 'Sincronizat');
+      setTimeout(() => hideSync(), 2000);
+      return true;
+    }
+
+    // cloud gol — urcăm datele locale dacă există
+    const local = localStorage.getItem(SK);
+    if (local) {
+      const parsed = JSON.parse(local);
+      if (parsed.fields && parsed.fields.length) {
+        applyRawState(parsed);
+        showSync('syncing', 'Se urcă datele locale...');
+        await syncToCloud();
+        return true;
+      }
+    }
+
+    // nimic nicăieri — start curat
+    hideSync();
+    return false;
+  } catch(e) {
+    showSync('error', 'Offline — date locale');
+    setTimeout(() => hideSync(), 3000);
+    load();
+    return false;
+  }
+}
+
+function showSync(type, text) {
+  const el = document.getElementById('sync-indicator');
+  const txt = document.getElementById('sync-text');
+  if (!el) return;
+  el.className = `show ${type}`;
+  txt.textContent = text;
+}
+function hideSync() {
+  const el = document.getElementById('sync-indicator');
+  if (el) el.classList.remove('show');
+}
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+function showAuthTab(tab) {
+  document.getElementById('auth-login').style.display = tab === 'login' ? '' : 'none';
+  document.getElementById('auth-register').style.display = tab === 'register' ? '' : 'none';
+  document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+  document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+  clearAuthMsg();
+}
+
+function setAuthMsg(text, type = 'error') {
+  const el = document.getElementById('auth-msg');
+  el.textContent = text; el.className = `auth-msg ${type}`;
+}
+function clearAuthMsg() {
+  const el = document.getElementById('auth-msg');
+  el.className = 'auth-msg'; el.textContent = '';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  if (!email || !pass) { setAuthMsg('Completează email și parolă.'); return; }
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = 'Se verifică...';
+  clearAuthMsg();
+  const { error } = await supa.auth.signInWithPassword({ email, password: pass });
+  btn.disabled = false; btn.textContent = 'Intră în cont';
+  if (error) { setAuthMsg(error.message === 'Invalid login credentials' ? 'Email sau parolă incorectă.' : error.message); return; }
+  // onAuthStateChange se ocupă de rest
+}
+
+async function doRegister() {
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  const pass2 = document.getElementById('reg-pass2').value;
+  if (!email || !pass) { setAuthMsg('Completează toate câmpurile.'); return; }
+  if (pass.length < 6) { setAuthMsg('Parola trebuie să aibă minim 6 caractere.'); return; }
+  if (pass !== pass2) { setAuthMsg('Parolele nu coincid.'); return; }
+  const btn = document.getElementById('reg-btn');
+  btn.disabled = true; btn.textContent = 'Se creează...';
+  clearAuthMsg();
+  const { error } = await supa.auth.signUp({ email, password: pass });
+  btn.disabled = false; btn.textContent = 'Creează cont';
+  if (error) { setAuthMsg(error.message); return; }
+  setAuthMsg('Cont creat! Verifică emailul pentru confirmare, apoi autentifică-te.', 'success');
+}
+
+async function doLogout() {
+  await supa.auth.signOut();
+  currentUser = null;
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+function showUserMenu() {
+  if (!currentUser) return;
+  const email = currentUser.email;
+  if (confirm(`Conectat ca: ${email}\n\nApasă OK pentru deconectare.`)) {
+    doLogout();
+  }
+}
+
+function onUserLoggedIn(user) {
+  currentUser = user;
+  const short = user.email.split('@')[0].substring(0, 10);
+  const el = document.getElementById('user-email-short');
+  if (el) el.textContent = short;
+  document.getElementById('auth-screen').style.display = 'none';
+  loadFromCloud().then(() => {
+    initApp();
+  });
+}
+
+function initApp() {
+  initMap();
+  renderAll();
+  renderCulturesPanel();
+  renderProductCategoriesPanel();
+  renderProductUnitsPanel();
+  populateProdCatSelect();
+  populateProdUnitSelect();
+  renderYearSelector();
+  setTimeout(() => { map.invalidateSize(); zoomToAllFields(); }, 400);
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  supa.auth.onAuthStateChange((event, session) => {
+    if (session && session.user) {
+      onUserLoggedIn(session.user);
+    } else if (event === 'SIGNED_OUT') {
+      document.getElementById('auth-screen').style.display = 'flex';
+    }
+  });
+
+  // Enter key pe câmpuri auth
+  ['login-email','login-pass'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+  });
+  ['reg-email','reg-pass','reg-pass2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', e => { if(e.key==='Enter') doRegister(); });
+  });
+});
+
+function initMap() {
+  // Coordonate implicite de backup în caz de listă goală (Broscăuți, Botoșani)
+  map = L.map('map', { attributionControl: false, maxZoom: 20 }).setView([47.785, 26.435], 13);
+  // Google Satellite — fără API key, calitate excelentă pentru zone agricole
+  L.tileLayer('https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+    maxZoom: 21, maxNativeZoom: 20, subdomains: ['0','1','2','3']
+  }).addTo(map);
+  // Strat hibrid Google — drumuri + localități peste satelit
+  L.tileLayer('https://mt{s}.google.com/vt/lyrs=h&x={x}&y={y}&z={z}', {
+    maxZoom: 21, maxNativeZoom: 20, subdomains: ['0','1','2','3'], opacity: 0.7
+  }).addTo(map);
+  layersGroup = L.layerGroup().addTo(map);
+  map.on('zoomend', updateLabelVisibility);
+}
+
+function switchView(view) {
+  currentView = view;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const activeNav = document.getElementById('nav-' + view); if (activeNav) activeNav.classList.add('active');
+
+  document.getElementById('map-view').style.display = view === 'map' ? 'flex' : 'none';
+  document.getElementById('field-detail').style.display = 'none';
+  document.getElementById('tasks-view').style.display = view === 'tasks' ? 'flex' : 'none';
+  document.getElementById('products-view').style.display = view === 'products' ? 'flex' : 'none';
+  document.getElementById('treatments-view').style.display = view === 'treatments' ? 'flex' : 'none';
+  document.getElementById('costs-view').style.display = view === 'costs' ? 'flex' : 'none';
+  document.getElementById('settings-view').style.display = view === 'settings' ? 'flex' : 'none';
+
+  if (view === 'map') { setTimeout(() => { map.invalidateSize(); zoomToAllFields(); }, 50); selectedFieldId = null; highlightLayer(null); }
+  else {
+    if (multiSelectMode) toggleMultiSelectMode();
+    if (view === 'tasks') { renderTaskFilters(); renderTasksView(); }
+    else if (view === 'products') { renderProductsView(); }
+    else if (view === 'treatments') { renderTreatmentsView(); }
+    else if (view === 'costs') renderCostsView();
+    else if (view === 'settings') { renderCulturesPanel(); renderProductCategoriesPanel(); renderProductUnitsPanel(); const br = document.getElementById('btn-reset-settings'); if(br) br.style.display = state.fields.length ? 'block' : 'none'; }
+  }
+}
+
+// FUNCȚIE REVIZUITĂ PENTRU DETECTARE ȘI RE-CENTRARE AUTOMATĂ PE TOATE PARCELELE
+function zoomToAllFields() { 
+  if (!layersGroup || !layersGroup.getLayers().length) return; 
+  try { 
+    const bounds = L.featureGroup(layersGroup.getLayers()).getBounds();
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 }); 
+    }
+  } catch(e) {
+    console.log("Eroare la calcularea hotarelor: ", e);
+  } 
+}
+
+// ─── CONFIGURATOR CULTURI ────────────────────────────────────────────────────
+function renderCulturesPanel() {
+  const container = document.getElementById('custom-cultures-list'); if(!container) return;
+  container.innerHTML = '';
+  Object.keys(state.cultures).forEach(crop => {
+    const color = state.cultures[crop];
+    const row = document.createElement('div');
+    row.className = 'culture-item-row';
+    row.id = 'culture-row-' + CSS.escape(crop);
+    row.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="width:14px;height:14px;background:${color};border-radius:3px;display:inline-block;border:1px solid rgba(0,0,0,0.15)"></span>
+        <strong style="color:var(--text);font-size:13px;">${crop}</strong>
+      </div>
+      <div style="display:flex;gap:4px;">
+        <button class="btn btn-sm btn-gray" onclick="startEditCulture('${crop.replace(/'/g,"\\'")}')">✎</button>
+        <button class="btn btn-sm btn-red" onclick="deleteCustomCulture('${crop.replace(/'/g,"\\'")}')">Șterge</button>
+      </div>`;
+    container.appendChild(row);
+  });
+  populateCropDropdowns();
+}
+
+function addNewCustomCulture() {
+  const input = document.getElementById('new-culture-name');
+  const colorInput = document.getElementById('new-culture-color');
+  const name = input.value.trim();
+  if(!name) return;
+  if(state.cultures[name]) return;
+  state.cultures[name] = colorInput.value;
+  save();
+  input.value = '';
+  renderCulturesPanel();
+  renderAll();
+}
+
+function deleteCustomCulture(crop) {
+  const affectedFields = state.fields.filter(f => f.crop === crop);
+  const msg = affectedFields.length
+    ? `Ștergi cultura "${crop}"? ${affectedFields.length} parcel(e) vor fi reasignate la prima cultură disponibilă.`
+    : `Ștergi cultura "${crop}"?`;
+  if (!confirm(msg)) return;
+  delete state.cultures[crop];
+  const remaining = Object.keys(state.cultures);
+  const fallbackCrop = remaining[0] || '';
+  const fallbackColor = fallbackCrop ? state.cultures[fallbackCrop] : '#64748b';
+  affectedFields.forEach(f => { f.crop = fallbackCrop; f.color = fallbackColor; });
+  save(); renderCulturesPanel(); renderAll();
+}
+
+function startEditCulture(crop) {
+  const container = document.getElementById('custom-cultures-list'); if (!container) return;
+  const color = state.cultures[crop];
+  // înlocuim toate rândurile — rerender cu rândul activ în mod edit
+  container.innerHTML = '';
+  Object.keys(state.cultures).forEach(c => {
+    const col = state.cultures[c];
+    const row = document.createElement('div');
+    row.className = 'culture-item-row';
+    if (c === crop) {
+      row.innerHTML = `
+        <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
+          <input type="color" id="edit-culture-color" value="${col}" style="width:28px;height:28px;border:1px solid var(--border);border-radius:4px;cursor:pointer;padding:1px;flex-shrink:0;"/>
+          <input type="text" class="field-input" id="edit-culture-name" value="${c}" style="flex:1;min-width:0;background:#fff;font-size:13px;"/>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+          <button class="btn btn-sm btn-green" onclick="saveEditCulture('${c.replace(/'/g,"\\'")}')">✓</button>
+          <button class="btn btn-sm btn-gray" onclick="renderCulturesPanel()">✕</button>
+        </div>`;
+    } else {
+      row.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="width:14px;height:14px;background:${col};border-radius:3px;display:inline-block;border:1px solid rgba(0,0,0,0.15)"></span>
+          <strong style="color:var(--text);font-size:13px;">${c}</strong>
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-sm btn-gray" onclick="startEditCulture('${c.replace(/'/g,"\\'")}')">✎</button>
+          <button class="btn btn-sm btn-red" onclick="deleteCustomCulture('${c.replace(/'/g,"\\'")}')">Șterge</button>
+        </div>`;
+    }
+    container.appendChild(row);
+  });
+  document.getElementById('edit-culture-name').focus();
+}
+
+function saveEditCulture(oldCrop) {
+  const newName = document.getElementById('edit-culture-name').value.trim();
+  const newColor = document.getElementById('edit-culture-color').value;
+  if (!newName) return;
+  if (newName !== oldCrop && state.cultures[newName]) { alert('Există deja o cultură cu acest nume.'); return; }
+  const newCultures = {};
+  Object.keys(state.cultures).forEach(c => {
+    newCultures[c === oldCrop ? newName : c] = c === oldCrop ? newColor : state.cultures[c];
+  });
+  state.cultures = newCultures;
+  // actualizăm parcelele care aveau cultura veche
+  state.fields.forEach(f => { if (f.crop === oldCrop) { f.crop = newName; f.color = newColor; } });
+  save(); renderCulturesPanel(); renderAll();
+}
+
+function startEditProductCategory(cat) {
+  const container = document.getElementById('prodcat-list'); if (!container) return;
+  container.innerHTML = '';
+  state.productCategories.forEach(c => {
+    const inUse = state.products.some(p => p.category === c);
+    const row = document.createElement('div');
+    row.className = 'culture-item-row';
+    if (c === cat) {
+      row.innerHTML = `
+        <input type="text" class="field-input" id="edit-prodcat-name" value="${c}" style="flex:1;min-width:0;background:#fff;font-size:13px;"/>
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+          <button class="btn btn-sm btn-green" onclick="saveEditProductCategory('${c.replace(/'/g,"\\'")}')">✓</button>
+          <button class="btn btn-sm btn-gray" onclick="renderProductCategoriesPanel()">✕</button>
+        </div>`;
+    } else {
+      row.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:13px;color:var(--purple)">■</span>
+          <strong style="color:var(--text);font-size:13px;">${c}</strong>
+          ${inUse ? `<span style="font-size:10px;color:var(--dim)">(${state.products.filter(p=>p.category===c).length} prod.)</span>` : ''}
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-sm btn-gray" onclick="startEditProductCategory('${c.replace(/'/g,"\\'")}')">✎</button>
+          <button class="btn btn-sm btn-red" onclick="deleteProductCategory('${c.replace(/'/g,"\\'")}')">Șterge</button>
+        </div>`;
+    }
+    container.appendChild(row);
+  });
+  document.getElementById('edit-prodcat-name').focus();
+}
+
+function saveEditProductCategory(oldCat) {
+  const newName = document.getElementById('edit-prodcat-name').value.trim();
+  if (!newName) return;
+  if (newName !== oldCat && state.productCategories.includes(newName)) { alert('Există deja această categorie.'); return; }
+  state.productCategories = state.productCategories.map(c => c === oldCat ? newName : c);
+  state.products.forEach(p => { if (p.category === oldCat) p.category = newName; });
+  save(); renderProductCategoriesPanel(); populateProdCatSelect();
+}
+
+function startEditProductUnit(unit) {
+  const container = document.getElementById('produnit-list'); if (!container) return;
+  container.innerHTML = '';
+  state.productUnits.forEach(u => {
+    const inUse = state.products.some(p => p.unit === u);
+    const row = document.createElement('div');
+    row.className = 'culture-item-row';
+    if (u === unit) {
+      row.innerHTML = `
+        <input type="text" class="field-input" id="edit-produnit-name" value="${u}" style="flex:1;min-width:0;background:#fff;font-size:13px;"/>
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+          <button class="btn btn-sm btn-green" onclick="saveEditProductUnit('${u.replace(/'/g,"\\'")}')">✓</button>
+          <button class="btn btn-sm btn-gray" onclick="renderProductUnitsPanel()">✕</button>
+        </div>`;
+    } else {
+      row.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:13px;color:var(--blue)">■</span>
+          <strong style="color:var(--text);font-size:13px;">${u}</strong>
+          ${inUse ? `<span style="font-size:10px;color:var(--dim)">(${state.products.filter(p=>p.unit===u).length} prod.)</span>` : ''}
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-sm btn-gray" onclick="startEditProductUnit('${u.replace(/'/g,"\\'")}')">✎</button>
+          <button class="btn btn-sm btn-red" onclick="deleteProductUnit('${u.replace(/'/g,"\\'")}')">Șterge</button>
+        </div>`;
+    }
+    container.appendChild(row);
+  });
+  document.getElementById('edit-produnit-name').focus();
+}
+
+function saveEditProductUnit(oldUnit) {
+  const newName = document.getElementById('edit-produnit-name').value.trim();
+  if (!newName) return;
+  if (newName !== oldUnit && state.productUnits.includes(newName)) { alert('Există deja această unitate.'); return; }
+  state.productUnits = state.productUnits.map(u => u === oldUnit ? newName : u);
+  state.products.forEach(p => { if (p.unit === oldUnit) p.unit = newName; });
+  save(); renderProductUnitsPanel(); populateProdUnitSelect();
+}
+
+function populateCropDropdowns() {
+  const sorted = Object.keys(state.cultures).sort((a, b) => a.localeCompare(b, 'ro'));
+  const detailSel = document.getElementById('detail-crop-select');
+  const importSel = document.getElementById('import-crop');
+  if(detailSel) { detailSel.innerHTML = ''; sorted.forEach(c => { detailSel.innerHTML += `<option value="${c}">${c}</option>`; }); }
+  if(importSel) { importSel.innerHTML = ''; sorted.forEach(c => { importSel.innerHTML += `<option value="${c}">${c}</option>`; }); }
+}
+
+// ─── GEOMETRIE ȘI SHAPEFILE PARSER ───────────────────────────────────────────
+function calculateGeoJsonAreaHectares(geometry) {
+  if (!geometry || !geometry.coordinates || geometry.coordinates.length === 0) return 1.0;
+  let totalAreaSqM = 0;
+  if (geometry.type === "Polygon") totalAreaSqM = calculateSinglePolygonArea(geometry.coordinates[0]);
+  else if (geometry.type === "MultiPolygon") geometry.coordinates.forEach(poly => { totalAreaSqM += calculateSinglePolygonArea(poly[0]); });
+  return totalAreaSqM / 10000;
+}
+
+function calculateSinglePolygonArea(coords) {
+  if (coords.length < 3) return 0;
+  let area = 0; const RADIUS = 6378137;
+  for (let i = 0; i < coords.length - 1; i++) {
+    const p1 = coords[i]; const p2 = coords[i + 1];
+    const x1 = p1[0] * Math.PI / 180 * RADIUS * Math.cos(p1[1] * Math.PI / 180);
+    const y1 = p1[1] * Math.PI / 180 * RADIUS;
+    const x2 = p2[0] * Math.PI / 180 * RADIUS * Math.cos(p2[1] * Math.PI / 180);
+    const y2 = p2[1] * Math.PI / 180 * RADIUS;
+    area += (x1 * y2) - (x2 * y1);
+  }
+  return Math.abs(area) / 2;
+}
+
+function showImport() { document.getElementById('import-modal').style.display = 'flex'; resetImport(); }
+function hideImport() { document.getElementById('import-modal').style.display = 'none'; resetImport(); }
+function resetImport() {
+  importPreviewData = null;
+  loadedShpBuffer = null; loadedDbfBuffer = null;
+  document.getElementById('import-preview').style.display = 'none';
+  document.getElementById('import-error').style.display = 'none';
+  const statusEl = document.getElementById('import-file-status');
+  if (statusEl) statusEl.style.display = 'none';
+}
+
+let loadedShpBuffer = null, loadedDbfBuffer = null;
+
+function handleFolderInput(files) { processFileList(files); }
+
+function handleDrop(e) {
+  e.preventDefault();
+  // suportă atât drop de folder cât și fișiere individuale
+  const items = e.dataTransfer.items;
+  if (items && items.length) {
+    const files = [];
+    for (let i = 0; i < items.length; i++) {
+      const entry = items[i].webkitGetAsEntry ? items[i].webkitGetAsEntry() : null;
+      if (entry && entry.isDirectory) {
+        // folder drop — citim recursiv
+        readDirEntries(entry, files, () => processFileList(files));
+        return;
+      }
+      if (items[i].kind === 'file') files.push(items[i].getAsFile());
+    }
+    processFileList(files);
+  } else {
+    processFileList(e.dataTransfer.files);
+  }
+}
+
+function readDirEntries(dirEntry, fileArr, done) {
+  const reader = dirEntry.createReader();
+  reader.readEntries(entries => {
+    let pending = entries.length;
+    if (!pending) { done(); return; }
+    entries.forEach(entry => {
+      if (entry.isFile) {
+        entry.file(f => { fileArr.push(f); if (!--pending) done(); });
+      } else { --pending; if (!pending) done(); }
+    });
+  });
+}
+
+function processFileList(files) {
+  loadedShpBuffer = null; loadedDbfBuffer = null;
+  resetImport();
+  const statusEl = document.getElementById('import-file-status');
+  statusEl.style.display = 'flex';
+  // reset statusuri
+  ['shp','dbf','prj','shx'].forEach(ext => {
+    const el = document.getElementById('status-' + ext);
+    if (el) { el.style.color = 'var(--dim)'; el.textContent = '⬜ .' + ext; }
+  });
+
+  const fileArr = Array.from(files);
+  let shpFile = null, dbfFile = null;
+
+  fileArr.forEach(f => {
+    const ext = f.name.split('.').pop().toLowerCase();
+    const el = document.getElementById('status-' + ext);
+    if (el) { el.style.color = 'var(--green)'; el.textContent = '✅ .' + ext + ' (' + f.name + ')'; }
+    if (ext === 'shp') shpFile = f;
+    if (ext === 'dbf') dbfFile = f;
+  });
+
+  if (!shpFile) return; // așteptăm să fie cel puțin .shp
+
+  const readFile = (file) => new Promise(res => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.readAsArrayBuffer(file);
+  });
+
+  Promise.all([
+    readFile(shpFile),
+    dbfFile ? readFile(dbfFile) : Promise.resolve(null)
+  ]).then(([shpBuf, dbfBuf]) => {
+    loadedShpBuffer = shpBuf;
+    loadedDbfBuffer = dbfBuf;
+    tryProcessBuffers();
+  });
+}
+
+function handleShpFile(file) { if(!file)return; const r=new FileReader(); r.onload=function(e){loadedShpBuffer=e.target.result;tryProcessBuffers()}; r.readAsArrayBuffer(file); }
+function handleDbfFile(file) { if(!file)return; const r=new FileReader(); r.onload=function(e){loadedDbfBuffer=e.target.result;tryProcessBuffers()}; r.readAsArrayBuffer(file); }
+
+function tryProcessBuffers() {
+  if (!loadedShpBuffer) return;
+  document.getElementById('import-loading').style.display = 'block';
+  setTimeout(() => {
+    try {
+      const shp = parseShp(loadedShpBuffer);
+      let dbf = null; if (loadedDbfBuffer) { try { dbf = parseDbf(loadedDbfBuffer); } catch(e){} }
+      showImportPreview(shp, dbf);
+    } catch(err) {
+      document.getElementById('import-loading').style.display = 'none';
+      const eBox = document.getElementById('import-error'); eBox.style.display = 'block'; eBox.textContent = err.message;
+    }
+  }, 100);
+}
+
+function parseShp(arrayBuffer) {
+  const view = new DataView(arrayBuffer);
+  if (view.getInt32(0, false) !== 9994) throw new Error("Fișier .SHP invalid.");
+  const shapeType = view.getInt32(32, true);
+  if (shapeType !== 5 && shapeType !== 15 && shapeType !== 25) throw new Error("Sunt suportate doar tipuri Poligon.");
+
+  const records = []; let offset = 100;
+  while (offset < arrayBuffer.byteLength) {
+    if (offset + 8 > arrayBuffer.byteLength) break;
+    const recNum = view.getInt32(offset, false);
+    const recLen = view.getInt32(offset + 4, false) * 2;
+    const recType = view.getInt32(offset + 8, true);
+    if (recType === 0) { offset += 8 + recLen; continue; }
+    
+    const minX = view.getFloat64(offset + 12, true); const minY = view.getFloat64(offset + 20, true);
+    const maxX = view.getFloat64(offset + 28, true); const maxY = view.getFloat64(offset + 36, true);
+    const numParts = view.getInt32(offset + 44, true); const numPoints = view.getInt32(offset + 48, true);
+
+    const parts = []; for (let i = 0; i < numParts; i++) parts.push(view.getInt32(offset + 52 + i * 4, true));
+    const points = []; let ptsOffset = offset + 52 + numParts * 4;
+    for (let i = 0; i < numPoints; i++) points.push([view.getFloat64(ptsOffset + i * 16, true), view.getFloat64(ptsOffset + i * 16 + 8, true)]);
+
+    const isStereo70 = minX > 100000 && maxX < 900000 && minY > 100000 && maxY < 900000;
+    const convertedCoordinates = [];
+    
+    for (let p = 0; p < numParts; p++) {
+      const start = parts[p]; const end = (p === numParts - 1) ? numPoints : parts[p + 1];
+      const partPts = [];
+      for (let i = start; i < end; i++) {
+        let pt = points[i]; if (isStereo70) pt = stereo70ToWgs84(pt[0], pt[1]);
+        partPts.push(pt);
+      }
+      convertedCoordinates.push(partPts);
+    }
+
+    const geojson = { type: "Polygon", coordinates: convertedCoordinates };
+    let areaHectares = 0;
+    if (isStereo70) {
+      let areaSqM = 0;
+      for (let i = 0; i < numPoints - 1; i++) areaSqM += (points[i][0] * points[i+1][1]) - (points[i+1][0] * points[i][1]);
+      areaHectares = Math.abs(areaSqM) / 20000;
+    } else {
+      areaHectares = calculateGeoJsonAreaHectares(geojson);
+    }
+    records.push({ index: recNum, areaHectares: areaHectares, geojson: geojson });
+    offset += 8 + recLen;
+  }
+  return records;
+}
+
+function parseDbf(arrayBuffer) {
+  const view = new DataView(arrayBuffer);
+  const numRecords = view.getInt32(4, true); const headerLength = view.getInt16(8, true); const recordLength = view.getInt16(10, true);
+  const fields = []; let offset = 32;
+  while (offset < headerLength - 1) {
+    const nameBytes = []; for (let i = 0; i < 11; i++) { const b = view.getUint8(offset + i); if (b !== 0) nameBytes.push(b); }
+    fields.push({ name: String.fromCharCode(...nameBytes).trim(), len: view.getUint8(offset + 16) }); offset += 32;
+  }
+  const rows = []; let recOffset = headerLength; const decoder = new TextDecoder('iso-8859-2');
+  for (let r = 0; r < numRecords; r++) {
+    if (recOffset + recordLength > arrayBuffer.byteLength) break;
+    const row = {}; let fOffset = recOffset + 1;
+    fields.forEach(f => { const u8 = new Uint8Array(arrayBuffer, fOffset, f.len); row[f.name] = decoder.decode(u8).trim(); fOffset += f.len; });
+    rows.push(row); recOffset += recordLength;
+  }
+  return { fields, rows };
+}
+
+function stereo70ToWgs84(x, y) {
+  const x0 = 500000; const y0 = 500000; const phi0 = 46 * Math.PI / 180; const lambda0 = 25 * Math.PI / 180;
+  const R = 6378137; const k0 = 0.99975; const dx = x - x0; const dy = y - y0; const rho = Math.sqrt(dx*dx + dy*dy);
+  if (rho === 0) return [25, 46]; const c = rho / (R * k0);
+  const lat = Math.asin(Math.cos(c)*Math.sin(phi0) + (dy*Math.sin(c)*Math.cos(phi0))/rho) * 180 / Math.PI;
+  const lon = (lambda0 + Math.atan2(dx*Math.sin(c), rho*Math.cos(phi0)*Math.cos(c) - dy*Math.sin(phi0)*Math.sin(c))) * 180 / Math.PI;
+  return [lon, lat];
+}
+
+function showImportPreview(shp, dbf) {
+  document.getElementById('import-loading').style.display = 'none';
+  document.getElementById('import-preview').style.display = 'block';
+  importPreviewData = { shp, dbf };
+  document.getElementById('prev-counts').textContent = `${shp.length} parcele identificate.`;
+  const nameSelect = document.getElementById('import-name-field'); nameSelect.innerHTML = '<option value="">— Index —</option>';
+  if (dbf && dbf.fields.length) {
+    dbf.fields.forEach(f => {
+      const opt = document.createElement('option'); opt.value = f.name; opt.textContent = f.name;
+      if(['NAME','NUME','DENUMIRE','COD'].includes(f.name.toUpperCase())) opt.selected = true;
+      nameSelect.appendChild(opt);
+    });
+  }
+}
+
+function doImport() {
+  if (!importPreviewData) return;
+  const { shp, dbf } = importPreviewData;
+  const attrNameKey = document.getElementById('import-name-field').value;
+  const defaultPrefix = document.getElementById('import-default-name').value.trim() || "Parcela";
+  const chosenCrop = document.getElementById('import-crop').value;
+  const cropColor = state.cultures[chosenCrop] || '#64748b';
+  const d = yd();
+
+  shp.forEach((rec, idx) => {
+    let finalName = `${defaultPrefix} ${rec.index || (idx + 1)}`;
+    if (dbf && dbf.rows[idx] && attrNameKey && dbf.rows[idx][attrNameKey]) finalName = dbf.rows[idx][attrNameKey];
+    const fid = gid();
+    state.fields.push({ id: fid, name: finalName, areaHectares: rec.areaHectares, geometry: rec.geojson });
+    if (d) {
+      d.crops[fid] = { crop: chosenCrop, color: cropColor };
+      if (!d.activeFields.includes(fid)) d.activeFields.push(fid);
+    }
+  });
+  save(); renderAll(); hideImport(); zoomToAllFields();
+}
+
+// ─── RENDERING MANAGEMENT ────────────────────────────────────────────────────
+function renderAll() {
+  renderMapLayers(); renderFieldBar(); updateHeaderStats(); populateCropDropdowns();
+  const btnResetSettings = document.getElementById('btn-reset-settings');
+  if (btnResetSettings) btnResetSettings.style.display = state.fields.length > 0 ? 'block' : 'none';
+}
+
+function updateHeaderStats() {
+  const d = yd();
+  const tasks = d ? d.tasks : [];
+  const treatments = d ? d.treatments : [];
+  const fields = activeFields();
+  document.getElementById('stat-fields').textContent = `${fields.length} parcele`;
+  document.getElementById('stat-tasks').textContent = `${tasks.filter(t => t.status !== 'Finalizat').length} active`;
+  let totalCost = 0; treatments.forEach(t => totalCost += (Number(t.totalCost) || 0));
+  document.getElementById('stat-cost').textContent = `${fmtN(totalCost, 0)} lei`;
+}
+
+let showLabels = true;
+
+function toggleLabels() {
+  showLabels = !showLabels;
+  const btn = document.getElementById('btn-labels');
+  if (btn) {
+    btn.classList.toggle('btn-green', showLabels);
+    btn.classList.toggle('btn-gray', !showLabels);
+    btn.style.opacity = showLabels ? '1' : '0.6';
+  }
+  updateLabelVisibility();
+}
+
+function updateLabelVisibility() {
+  if (!map) return;
+  const show = showLabels && map.getZoom() >= 14;
+  document.querySelectorAll('.map-permanent-label').forEach(el => {
+    el.style.visibility = show ? 'visible' : 'hidden';
+  });
+}
+
+function renderMapLayers() {
+  layersGroup.clearLayers();
+  const fields = activeFields();
+  fields.forEach(f => {
+    if (!f.geometry) return;
+    const fc = fieldCrop(f.id);
+    const activeColor = fc.color;
+    const isSelected = selectedFieldId === f.id;
+    const isMultiSelected = selectedFieldIds.has(f.id);
+    const layer = L.geoJSON(f.geometry, {
+      style: {
+        color: isMultiSelected ? '#ea580c' : (isSelected ? '#000000' : activeColor),
+        fillColor: isMultiSelected ? '#ea580c' : activeColor,
+        fillOpacity: isMultiSelected ? 0.45 : (isSelected ? 0.50 : 0.25),
+        weight: (isSelected || isMultiSelected) ? 4 : 2,
+        dashArray: isMultiSelected ? '6 3' : null
+      }
+    });
+    layer.on('click', (e) => {
+      L.DomEvent.stopPropagation(e);
+      if (multiSelectMode) { toggleFieldMultiSelect(f.id); } else { openDetail(f.id); }
+    });
+    layer.bindPopup(`<div class="popup-name">📍 ${f.name}</div><div style="font-size:12px;margin-top:2px">Cultură: <strong>${fc.crop}</strong></div><div style="font-size:12px">Suprafață: <strong>${fmt(f.areaHectares)} ha</strong></div>`);
+    layer.bindTooltip(`<strong>${f.name}</strong><br/>${fmtN(f.areaHectares, 2)} ha`, {
+      permanent: true, direction: 'center', className: 'map-permanent-label'
+    });
+    layer.fieldId = f.id; layersGroup.addLayer(layer);
+  });
+  updateLabelVisibility();
+}
+
+function highlightLayer(id) {
+  layersGroup.eachLayer(l => {
+    if (l.fieldId) {
+      const fc = fieldCrop(l.fieldId);
+      const activeColor = fc.color;
+      const isSelected = l.fieldId === id;
+      const isMultiSelected = selectedFieldIds.has(l.fieldId);
+      l.setStyle({
+        color: isMultiSelected ? '#ea580c' : (isSelected ? '#000000' : activeColor),
+        fillColor: isMultiSelected ? '#ea580c' : activeColor,
+        fillOpacity: isMultiSelected ? 0.45 : (isSelected ? 0.50 : 0.25),
+        weight: (isSelected || isMultiSelected) ? 4 : 2,
+        dashArray: isMultiSelected ? '6 3' : null
+      });
+      if (isSelected && !multiSelectMode && map.hasLayer(l)) map.fitBounds(l.getBounds(), { maxZoom: 16, padding: [40, 40] });
+    }
+  });
+}
+
+function renderFieldBar() {
+  const bar = document.getElementById('crop-bar');
+  const inner = document.getElementById('crop-bar-inner');
+  const legend = document.getElementById('crop-legend');
+  if (!bar || !inner || !legend) return;
+  const fields = activeFields();
+  if (!fields.length) { bar.style.display = 'none'; return; }
+
+  const byCrop = {};
+  let totalHa = 0;
+  fields.forEach(f => {
+    const ha = Number(f.areaHectares) || 0;
+    const fc = fieldCrop(f.id);
+    if (!byCrop[fc.crop]) byCrop[fc.crop] = { ha: 0, color: fc.color, parcele: 0 };
+    byCrop[fc.crop].ha += ha;
+    byCrop[fc.crop].parcele++;
+    totalHa += ha;
+  });
+
+  const crops = Object.entries(byCrop).sort((a, b) => b[1].ha - a[1].ha);
+  inner.innerHTML = '';
+  crops.forEach(([crop, d]) => {
+    const pct = totalHa > 0 ? (d.ha / totalHa * 100) : 0;
+    const seg = document.createElement('div');
+    seg.className = 'crop-segment';
+    seg.style.cssText = `width:${pct}%;background:${d.color};opacity:0.85;border-radius:3px;`;
+    seg.title = `${crop}: ${fmtN(d.ha, 2)} ha (${fmtN(pct, 1)}%)`;
+    inner.appendChild(seg);
+  });
+  legend.innerHTML = '';
+  crops.forEach(([crop, d]) => {
+    const pct = totalHa > 0 ? (d.ha / totalHa * 100) : 0;
+    const item = document.createElement('div');
+    item.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;white-space:nowrap;';
+    item.innerHTML = `<span style="width:9px;height:9px;background:${d.color};border-radius:2px;display:inline-block;flex-shrink:0;opacity:0.85"></span>`
+      + `<span style="color:var(--text)">${crop}</span>`
+      + `<span style="color:var(--muted)">${fmtN(d.ha,1)} ha · ${fmtN(pct,1)}%</span>`;
+    legend.appendChild(item);
+  });
+  bar.style.display = 'block';
+}
+
+// ─── FIȘA PARCELEI & MANAGEMENT DATE ─────────────────────────────────────────
+function openDetail(id) {
+  selectedFieldId = id;
+  const f = state.fields.find(field => field.id === id); if (!f) return;
+  const fc = fieldCrop(id);
+  document.getElementById('map-view').style.display = 'none';
+  document.getElementById('field-detail').style.display = 'flex';
+  document.getElementById('detail-name').textContent = f.name;
+  document.getElementById('detail-crop').textContent = fc.crop;
+  document.getElementById('detail-crop-select').value = fc.crop;
+  document.getElementById('detail-area').textContent = `${fmt(f.areaHectares)} ha`;
+  document.getElementById('detail-dot').style.background = fc.color;
+
+  const d = yd();
+  let totalCost = 0;
+  if (d) d.treatments.filter(t => t.fieldId === id).forEach(t => totalCost += (Number(t.totalCost) || 0));
+  document.getElementById('detail-cost').textContent = `${fmt(totalCost)} lei`;
+
+  const picker = document.getElementById('detail-color-picker'); picker.innerHTML = '';
+  COLORS.forEach(c => {
+    const sw = document.createElement('button'); sw.className = 'color-swatch'; sw.style.background = c;
+    if (fc.color === c) sw.classList.add('selected');
+    sw.onclick = () => {
+      const dd = yd(); if (dd) { if (!dd.crops[id]) dd.crops[id] = { crop: fc.crop, color: c }; else dd.crops[id].color = c; }
+      save(); openDetail(id);
+    };
+    picker.appendChild(sw);
+  });
+  renderDetailTasks(id); renderDetailTreatments(id); renderFieldBar(); highlightLayer(id);
+}
+
+function closeDetail() {
+  document.getElementById('field-detail').style.display = 'none';
+  document.getElementById('map-view').style.display = 'flex';
+  selectedFieldId = null; renderAll();
+  setTimeout(() => { map.invalidateSize(); zoomToAllFields(); }, 50);
+}
+function changeFieldCrop(newCrop) {
+  if (!selectedFieldId) return;
+  const d = yd(); if (!d) return;
+  if (!d.crops[selectedFieldId]) d.crops[selectedFieldId] = {};
+  d.crops[selectedFieldId].crop = newCrop;
+  d.crops[selectedFieldId].color = state.cultures[newCrop] || '#64748b';
+  save(); openDetail(selectedFieldId);
+}
+function editFieldName() {
+  if (!selectedFieldId) return;
+  const f = state.fields.find(field => field.id === selectedFieldId); if (!f) return;
+  const n = prompt("Nume nou:", f.name); if (n && n.trim()) { f.name = n.trim(); save(); openDetail(selectedFieldId); }
+}
+function deleteCurrentField() {
+  if (!selectedFieldId || !confirm("Ștergi parcela din toți anii?")) return;
+  state.fields = state.fields.filter(f => f.id !== selectedFieldId);
+  // curățăm din toate yearData
+  Object.values(state.yearData).forEach(d => {
+    delete d.crops[selectedFieldId];
+    d.treatments = d.treatments.filter(t => t.fieldId !== selectedFieldId);
+    d.tasks = d.tasks.filter(t => t.fieldId !== selectedFieldId);
+    d.activeFields = (d.activeFields || []).filter(id => id !== selectedFieldId);
+  });
+  save(); closeDetail();
+}
+
+function renderTaskFilters() {
+  const root = document.getElementById('filter-chips'); if(!root) return; root.innerHTML = '';
+  ['toate', 'În așteptare', 'În progres', 'Finalizat'].forEach(f => {
+    const b = document.createElement('button'); b.className = `filter-chip ${taskFilter===f?'active':''}`;
+    b.textContent = f; b.onclick = () => { taskFilter = f; renderTaskFilters(); renderTasksView(); }; root.appendChild(b);
+  });
+}
+function renderTasksView() {
+  const root = document.getElementById('tasks-list'); if(!root) return; root.innerHTML = '';
+  const d = yd();
+  const allTasks = d ? d.tasks : [];
+  let filtered = allTasks; if (taskFilter !== 'toate') filtered = filtered.filter(t => t.status === taskFilter);
+  if (!filtered.length) { root.innerHTML = '<div class="no-data">Nicio sarcină găsită.</div>'; return; }
+  filtered.forEach(t => {
+    const field = state.fields.find(f => f.id === t.fieldId);
+    const fieldName = field ? field.name : '—';
+    const typeLabel = t.type ? ' · ' + t.type : '';
+    const priorityColor = t.priority === 'Urgent' ? 'var(--red)' : t.priority === 'Ridicat' ? 'var(--yellow)' : 'var(--muted)';
+    const card = document.createElement('div'); card.className = 'task-card'; card.style.borderLeftColor = 'var(--green)';
+    card.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div><strong>' + t.title + '</strong><span style="color:var(--muted);font-size:11px">' + typeLabel + '</span><div style="font-size:11px;margin-top:3px;display:flex;gap:8px;flex-wrap:wrap"><span>📍 ' + fieldName + '</span><span style="color:' + priorityColor + ';font-weight:700">' + (t.priority||'Normal') + '</span><span style="color:var(--blue)">' + (t.status||'') + '</span>' + (t.dueDate?'<span style="color:var(--muted)">📅 '+t.dueDate+'</span>':'') + '</div></div><button class="btn btn-sm btn-red" onclick="deleteTask(\'' + t.id + '\')">🗑</button></div>';
+    root.appendChild(card);
+  });
+}
+function renderDetailTasks(fieldId) {
+  const root = document.getElementById('detail-tasks-list'); if(!root) return; root.innerHTML = '';
+  const d = yd(); const allTasks = d ? d.tasks : [];
+  const list = allTasks.filter(t => t.fieldId === fieldId);
+  if(!list.length) { root.innerHTML = '<div class="no-data">Fără sarcini planificate.</div>'; return; }
+  list.forEach(t => { root.innerHTML += `<div class="task-card" style="border-left-color:var(--yellow)"><strong>${t.title}</strong> (${t.status})</div>`; });
+}
+function openTaskForm() {
+  const sel = document.getElementById('task-field-id'); sel.innerHTML = '';
+  activeFields().forEach(f => sel.innerHTML += `<option value="${f.id}">${f.name}</option>`);
+  document.getElementById('task-modal').style.display = 'flex';
+}
+function hideTaskForm() { document.getElementById('task-modal').style.display = 'none'; }
+function saveTask() {
+  const d = yd(); if (!d) { alert('Selectează un an agricol mai întâi.'); return; }
+  d.tasks.push({ id: gid(), title: document.getElementById('task-title').value, type: document.getElementById('task-type').value, priority: document.getElementById('task-priority').value, fieldId: document.getElementById('task-field-id').value, dueDate: document.getElementById('task-due').value, status: document.getElementById('task-status').value });
+  save(); hideTaskForm(); if(selectedFieldId) openDetail(selectedFieldId); else renderTasksView();
+}
+function deleteTask(id) {
+  const d = yd(); if (!d) return;
+  d.tasks = d.tasks.filter(t => t.id !== id);
+  save(); renderTasksView(); if(selectedFieldId) renderDetailTasks(selectedFieldId); updateHeaderStats();
+}
+
+function renderProductCategoriesPanel() {
+  const container = document.getElementById('prodcat-list'); if (!container) return;
+  container.innerHTML = '';
+  state.productCategories.forEach(cat => {
+    const inUse = state.products.some(p => p.category === cat);
+    const row = document.createElement('div');
+    row.className = 'culture-item-row';
+    row.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:13px;color:var(--purple)">■</span>
+        <strong style="color:var(--text);font-size:13px;">${cat}</strong>
+        ${inUse ? `<span style="font-size:10px;color:var(--dim)">(${state.products.filter(p=>p.category===cat).length} prod.)</span>` : ''}
+      </div>
+      <div style="display:flex;gap:4px;">
+        <button class="btn btn-sm btn-gray" onclick="startEditProductCategory('${cat.replace(/'/g,"\\'")}')">✎</button>
+        <button class="btn btn-sm btn-red" onclick="deleteProductCategory('${cat.replace(/'/g,"\\'")}')">Șterge</button>
+      </div>`;
+    container.appendChild(row);
+  });
+}
+
+function addProductCategory() {
+  const input = document.getElementById('new-prodcat-name');
+  const name = input.value.trim();
+  if (!name) return;
+  if (state.productCategories.includes(name)) return;
+  state.productCategories.push(name);
+  save(); input.value = '';
+  renderProductCategoriesPanel();
+  populateProdCatSelect();
+}
+
+function deleteProductCategory(cat) {
+  const inUse = state.products.some(p => p.category === cat);
+  if (inUse && !confirm(`Categoria "${cat}" e folosită de ${state.products.filter(p=>p.category===cat).length} produs(e). Ștergi oricum?`)) return;
+  if (!inUse && !confirm(`Ștergi categoria "${cat}"?`)) return;
+  state.productCategories = state.productCategories.filter(c => c !== cat);
+  save();
+  renderProductCategoriesPanel();
+  populateProdCatSelect();
+}
+
+function populateProdCatSelect() {
+  const sel = document.getElementById('prod-cat'); if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '';
+  state.productCategories.forEach(c => sel.innerHTML += `<option value="${c}">${c}</option>`);
+  if (state.productCategories.includes(prev)) sel.value = prev;
+}
+
+function populateProdUnitSelect() {
+  const sel = document.getElementById('prod-unit'); if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '';
+  state.productUnits.forEach(u => sel.innerHTML += `<option value="${u}">${u}</option>`);
+  if (state.productUnits.includes(prev)) sel.value = prev;
+}
+
+function renderProductUnitsPanel() {
+  const container = document.getElementById('produnit-list'); if (!container) return;
+  container.innerHTML = '';
+  state.productUnits.forEach(unit => {
+    const inUse = state.products.some(p => p.unit === unit);
+    const row = document.createElement('div');
+    row.className = 'culture-item-row';
+    row.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:13px;color:var(--blue)">■</span>
+        <strong style="color:var(--text);font-size:13px;">${unit}</strong>
+        ${inUse ? `<span style="font-size:10px;color:var(--dim)">(${state.products.filter(p=>p.unit===unit).length} prod.)</span>` : ''}
+      </div>
+      <div style="display:flex;gap:4px;">
+        <button class="btn btn-sm btn-gray" onclick="startEditProductUnit('${unit.replace(/'/g,"\\'")}')">✎</button>
+        <button class="btn btn-sm btn-red" onclick="deleteProductUnit('${unit.replace(/'/g,"\\'")}')">Șterge</button>
+      </div>`;
+    container.appendChild(row);
+  });
+}
+
+function addProductUnit() {
+  const input = document.getElementById('new-produnit-name');
+  const name = input.value.trim();
+  if (!name) return;
+  if (state.productUnits.includes(name)) return;
+  state.productUnits.push(name);
+  save(); input.value = '';
+  renderProductUnitsPanel();
+  populateProdUnitSelect();
+}
+
+function deleteProductUnit(unit) {
+  const inUse = state.products.some(p => p.unit === unit);
+  if (inUse && !confirm(`Unitatea "${unit}" e folosită de ${state.products.filter(p=>p.unit===unit).length} produs(e). Ștergi oricum?`)) return;
+  if (!inUse && !confirm(`Ștergi unitatea "${unit}"?`)) return;
+  state.productUnits = state.productUnits.filter(u => u !== unit);
+  save();
+  renderProductUnitsPanel();
+  populateProdUnitSelect();
+}
+
+function renderProductsView() {
+  renderProductCategoriesPanel();
+  renderProductUnitsPanel();
+  populateProdCatSelect();
+  populateProdUnitSelect();
+  const root = document.getElementById('products-list'); if(!root) return; root.innerHTML = '';
+  if(!state.products.length) { root.innerHTML = '<div class="no-data">Niciun produs în magazie.</div>'; return; }
+  // grupăm pe categorii
+  const byCat = {};
+  state.products.forEach(p => { if (!byCat[p.category]) byCat[p.category] = []; byCat[p.category].push(p); });
+  Object.keys(byCat).forEach(cat => {
+    root.innerHTML += `<div style="font-size:10px;font-weight:800;color:var(--purple);letter-spacing:.06em;margin:6px 0 3px">${cat.toUpperCase()}</div>`;
+    byCat[cat].forEach(p => {
+      root.innerHTML += `<div class="prod-card" style="margin-bottom:5px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <strong>${p.name}</strong>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Stoc: <span style="color:var(--text);font-weight:700">${p.stock} ${p.unit}</span> · <span style="color:var(--orange);font-weight:700">${p.pricePerUnit} lei/${p.unit}</span></div>
+        </div>
+        <button class="btn btn-sm btn-red" onclick="deleteProduct('${p.id}')">🗑</button>
+      </div>`;
+    });
+  });
+}
+
+function openProductForm() {
+  populateProdCatSelect();
+  populateProdUnitSelect();
+  document.getElementById('prod-name').value = '';
+  document.getElementById('prod-stock').value = '';
+  document.getElementById('prod-price').value = '';
+  document.getElementById('product-modal').style.display = 'flex';
+}
+function hideProductForm() { document.getElementById('product-modal').style.display = 'none'; }
+function saveProduct() {
+  const name = document.getElementById('prod-name').value.trim();
+  if (!name) return;
+  state.products.push({ id: gid(), name, category: document.getElementById('prod-cat').value, unit: document.getElementById('prod-unit').value, stock: Number(document.getElementById('prod-stock').value)||0, pricePerUnit: Number(document.getElementById('prod-price').value)||0 });
+  save(); hideProductForm(); renderProductsView();
+}
+function deleteProduct(id) {
+  if (!confirm('Ștergi produsul din magazie?')) return;
+  state.products = state.products.filter(p => p.id !== id);
+  save(); renderProductsView();
+}
+
+function renderTreatmentsView() {
+  const root = document.getElementById('treatments-list'); if(!root) return; root.innerHTML = '';
+  const d = yd(); const list = d ? d.treatments : [];
+  if (!list.length) { root.innerHTML = '<div class="no-data">Niciun tratament înregistrat.</div>'; return; }
+  list.forEach(t => {
+    const field = state.fields.find(f => f.id === t.fieldId);
+    root.innerHTML += `<div class="treat-card"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><strong>${t.productName}</strong>${t.date?` · <span style="color:var(--muted);font-size:11px">${t.date}</span>`:''}<br><span style="font-size:11px;color:var(--muted)">${field?field.name:'—'}</span></div></div><div style="font-size:11px;color:var(--muted);margin-top:2px">Cost: <strong style="color:var(--orange)">${fmt(t.totalCost)} lei</strong></div></div>`;
+  });
+}
+function renderDetailTreatments(fieldId) {
+  const root = document.getElementById('detail-treatments-list'); if(!root) return; root.innerHTML = '';
+  const d = yd(); const list = d ? d.treatments.filter(t => t.fieldId === fieldId) : [];
+  if(!list.length) { root.innerHTML = '<div class="no-data">Niciun tratament aplicat.</div>'; return; }
+  list.forEach(t => { root.innerHTML += `<div class="treat-card" style="border-left-color:var(--blue)"><strong>${t.productName}</strong> - Doză: ${t.dosePerHa} | Cost: ${t.totalCost} lei</div>`; });
+}
+function openTreatmentForm() {
+  const fSel = document.getElementById('treat-field-id'); fSel.innerHTML = '';
+  activeFields().forEach(f => fSel.innerHTML += `<option value="${f.id}">${f.name}</option>`);
+  const pSel = document.getElementById('treat-product-id'); pSel.innerHTML = '';
+  state.products.forEach(p => pSel.innerHTML += `<option value="${p.id}">${p.name}</option>`);
+  document.getElementById('treat-area').value = '';
+  document.getElementById('treat-date').value = new Date().toISOString().split('T')[0];
+  const noteEl = document.getElementById('treat-multi-note');
+  if (noteEl) noteEl.style.display = 'none';
+  document.getElementById('treatment-modal').style.display = 'flex';
+  setTimeout(updateTreatCalc, 50);
+}
+function hideTreatmentForm() {
+  document.getElementById('treatment-modal').style.display = 'none';
+  const noteEl = document.getElementById('treat-multi-note');
+  if (noteEl) noteEl.style.display = 'none';
+}
+function updateTreatCalc() {
+  const p = state.products.find(x => x.id === document.getElementById('treat-product-id').value); if(!p) return;
+  document.getElementById('treat-unit-lbl').textContent = p.unit;
+  const t = (Number(document.getElementById('treat-dose').value)||0) * (Number(document.getElementById('treat-area').value)||0);
+  document.getElementById('treat-calc').innerHTML = `Total substanță: ${t} ${p.unit} | Cost total: <strong>${t * p.pricePerUnit} lei</strong>`;
+}
+function saveTreatment() {
+  const d = yd(); if (!d) { alert('Selectează un an agricol mai întâi.'); return; }
+  const p = state.products.find(x => x.id === document.getElementById('treat-product-id').value); if(!p) return;
+  const t = (Number(document.getElementById('treat-dose').value)||0) * (Number(document.getElementById('treat-area').value)||0);
+  d.treatments.push({ id: gid(), date: document.getElementById('treat-date').value, fieldId: document.getElementById('treat-field-id').value, productName: p.name, totalCost: t * p.pricePerUnit, dosePerHa: Number(document.getElementById('treat-dose').value) });
+  save(); hideTreatmentForm(); updateHeaderStats(); if(selectedFieldId) openDetail(selectedFieldId); else renderTreatmentsView();
+}
+
+function renderCostsView() {
+  const d = yd();
+  const treatments = d ? d.treatments : [];
+  const activeYearName = state.activeYear ? (state.years.find(y => y.id === state.activeYear)?.name || '') : 'Toți anii';
+  const fields = activeFields();
+
+  // ── COSTURI ──────────────────────────────────────────────────────────────────
+  let totalCost = 0; treatments.forEach(t => totalCost += (Number(t.totalCost)||0));
+  let costsHtml = `<div class="cost-summary"><div class="cost-total">${fmt(totalCost)} lei</div><div class="cost-label">INVESTIȚIE TOTALĂ · ${activeYearName.toUpperCase()}</div></div>`;
+  fields.forEach(f => {
+    let fc = 0; treatments.filter(t => t.fieldId === f.id).forEach(t => fc += (Number(t.totalCost)||0));
+    const crop = fieldCrop(f.id).crop;
+    costsHtml += `<div class="field-cost-card"><div><strong>${f.name}</strong> (${crop})</div><div class="field-cost-val">${fmt(fc)} lei</div></div>`;
+  });
+  document.getElementById('costs-content').innerHTML = costsHtml;
+
+  // ── COMPARAȚIE ANI ────────────────────────────────────────────────────────────
+  const statsEl = document.getElementById('stats-content');
+  if (!fields.length) { statsEl.innerHTML = ''; return; }
+
+  let compHtml = '';
+  if (state.years.length > 1) {
+    const maxCost = Math.max(...state.years.map(y => {
+      let c = 0; const ydd = state.yearData[y.id]; if (ydd) ydd.treatments.forEach(t => c += Number(t.totalCost)||0); return c;
+    }), 1);
+    compHtml = `<div class="cost-summary" style="margin-bottom:4px;">
+      <div class="cost-label" style="margin-bottom:10px;">📊 COMPARAȚIE ANI AGRICOLI</div>
+      ${state.years.map(y => {
+        let c = 0; const ydd = state.yearData[y.id]; if (ydd) ydd.treatments.forEach(t => c += Number(t.totalCost)||0);
+        const pct = c / maxCost * 100;
+        const isActive = y.id === state.activeYear;
+        return `<div style="margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+            <span style="font-size:12px;font-weight:${isActive?'800':'700'};color:${isActive?'var(--green)':'var(--text)'};">${y.name}${isActive?' ▶':''}</span>
+            <span style="font-size:12px;font-weight:800;color:var(--orange)">${fmt(c)} lei</span>
+          </div>
+          <div style="background:var(--border);border-radius:4px;height:8px;overflow:hidden;">
+            <div style="background:${isActive?'var(--green)':'var(--blue)'};width:${pct}%;height:100%;border-radius:4px;opacity:0.8;"></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  // ── STRUCTURA CULTURILOR (din anul activ) ────────────────────────────────────
+  const byCrop = {};
+  fields.forEach(f => {
+    const ha = Number(f.areaHectares) || 0;
+    const fc = fieldCrop(f.id);
+    if (!byCrop[fc.crop]) byCrop[fc.crop] = { ha: 0, parcele: 0, color: fc.color, cost: 0 };
+    byCrop[fc.crop].ha += ha;
+    byCrop[fc.crop].parcele++;
+    treatments.filter(t => t.fieldId === f.id).forEach(t => byCrop[fc.crop].cost += (Number(t.totalCost)||0));
+  });
+
+  const totalHa = Object.values(byCrop).reduce((s, v) => s + v.ha, 0);
+  const crops = Object.entries(byCrop).sort((a, b) => b[1].ha - a[1].ha);
+
+  const cx = 100, cy = 100, R = 80, r = 48;
+  let angle = -Math.PI / 2;
+  let slices = '';
+  const gap = 0.018;
+  crops.forEach(([crop, dd]) => {
+    const pct = totalHa > 0 ? dd.ha / totalHa : 0;
+    const sweep = pct * 2 * Math.PI - gap;
+    if (sweep <= 0) return;
+    const x1 = cx + R * Math.cos(angle + gap/2), y1 = cy + R * Math.sin(angle + gap/2);
+    const x2 = cx + R * Math.cos(angle + gap/2 + sweep), y2 = cy + R * Math.sin(angle + gap/2 + sweep);
+    const ix1 = cx + r * Math.cos(angle + gap/2 + sweep), iy1 = cy + r * Math.sin(angle + gap/2 + sweep);
+    const ix2 = cx + r * Math.cos(angle + gap/2), iy2 = cy + r * Math.sin(angle + gap/2);
+    const large = sweep > Math.PI ? 1 : 0;
+    slices += `<path d="M${x1},${y1} A${R},${R} 0 ${large},1 ${x2},${y2} L${ix1},${iy1} A${r},${r} 0 ${large},0 ${ix2},${iy2} Z" fill="${dd.color}" opacity="0.9" stroke="var(--surface)" stroke-width="1.5"/>`;
+    angle += pct * 2 * Math.PI;
+  });
+  const donutSvg = `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="width:180px;height:180px;flex-shrink:0">${slices}<text x="100" y="95" text-anchor="middle" font-family="'Courier New',monospace" font-size="13" font-weight="800" fill="var(--text)">${fmtN(totalHa,1)}</text><text x="100" y="112" text-anchor="middle" font-family="'Courier New',monospace" font-size="10" fill="var(--muted)">ha total</text></svg>`;
+
+  let legend = '';
+  crops.forEach(([crop, dd]) => {
+    const pct = totalHa > 0 ? (dd.ha / totalHa * 100) : 0;
+    const costPerHa = dd.ha > 0 ? dd.cost / dd.ha : 0;
+    legend += `<div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="width:11px;height:11px;background:${dd.color};border-radius:2px;display:inline-block;flex-shrink:0;border:1px solid rgba(0,0,0,0.1)"></span>
+          <strong style="font-size:12px;">${crop}</strong>
+          <span style="font-size:10px;color:var(--dim)">${dd.parcele} parc.</span>
+        </div>
+        <span style="font-size:12px;font-weight:800;color:var(--text)">${fmtN(pct,1)}%</span>
+      </div>
+      <div style="background:var(--border);border-radius:4px;height:6px;overflow:hidden;">
+        <div style="background:${dd.color};width:${pct}%;height:100%;border-radius:4px;opacity:0.85"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:2px;">
+        <span style="font-size:10px;color:var(--muted)">${fmtN(dd.ha,2)} ha</span>
+        ${dd.cost > 0 ? `<span style="font-size:10px;color:var(--orange)">${fmt(costPerHa)} lei/ha</span>` : ''}
+      </div>
+    </div>`;
+  });
+
+  statsEl.innerHTML = compHtml + `<div class="cost-summary" style="margin-top:4px;">
+    <div class="cost-label" style="margin-bottom:10px;">📊 STRUCTURA CULTURILOR · ${activeYearName.toUpperCase()}</div>
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">${donutSvg}<div style="flex:1;min-width:180px;">${legend}</div></div>
+  </div>`;
+}
+
+// ─── ANI AGRICOLI ─────────────────────────────────────────────────────────────
+function renderYearSelector() {
+  const sel = document.getElementById('year-selector'); if (!sel) return;
+  sel.innerHTML = '<option value="">Toți anii</option>';
+  state.years.forEach(y => {
+    sel.innerHTML += `<option value="${y.id}">${y.name}</option>`;
+  });
+  sel.value = state.activeYear || '';
+}
+
+function switchYear(yid) {
+  state.activeYear = yid || null;
+  save();
+  renderYearSelector();
+  renderAll();
+  if (currentView === 'costs') renderCostsView();
+  if (currentView === 'treatments') renderTreatmentsView();
+  if (currentView === 'tasks') { renderTaskFilters(); renderTasksView(); }
+}
+
+function showYearModal() {
+  renderYearList();
+  document.getElementById('year-modal').style.display = 'flex';
+}
+function hideYearModal() { document.getElementById('year-modal').style.display = 'none'; }
+
+function renderYearList() {
+  const container = document.getElementById('year-list'); if (!container) return;
+  if (!state.years.length) { container.innerHTML = '<div class="no-data">Niciun an agricol definit.</div>'; return; }
+  container.innerHTML = '';
+  state.years.forEach(y => {
+    const isActive = state.activeYear === y.id;
+    const row = document.createElement('div');
+    row.className = 'culture-item-row';
+    row.id = 'year-row-' + y.id;
+    row.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;">
+        ${isActive ? '<span style="color:var(--green);font-size:11px;font-weight:800;">▶ ACTIV</span>' : ''}
+        <strong style="font-size:13px;">${y.name}</strong>
+      </div>
+      <div style="display:flex;gap:4px;">
+        <button class="btn btn-sm btn-gray" onclick="startEditYear('${y.id}')">✎</button>
+        ${!isActive ? `<button class="btn btn-sm btn-green" onclick="setActiveYear('${y.id}')">Activează</button>` : ''}
+        <button class="btn btn-sm btn-red" onclick="deleteAgriYear('${y.id}')">Șterge</button>
+      </div>`;
+    container.appendChild(row);
+  });
+}
+
+function startEditYear(id) {
+  const y = state.years.find(x => x.id === id); if (!y) return;
+  const container = document.getElementById('year-list'); if (!container) return;
+  container.innerHTML = '';
+  state.years.forEach(yr => {
+    const isActive = state.activeYear === yr.id;
+    const row = document.createElement('div');
+    row.className = 'culture-item-row';
+    if (yr.id === id) {
+      row.innerHTML = `
+        <input type="text" class="field-input" id="edit-year-name" value="${yr.name}" style="flex:1;min-width:0;background:#fff;font-size:13px;"/>
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+          <button class="btn btn-sm btn-green" onclick="saveEditYear('${id}')">✓</button>
+          <button class="btn btn-sm btn-gray" onclick="renderYearList()">✕</button>
+        </div>`;
+    } else {
+      row.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;">
+          ${isActive ? '<span style="color:var(--green);font-size:11px;font-weight:800;">▶ ACTIV</span>' : ''}
+          <strong style="font-size:13px;">${yr.name}</strong>
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-sm btn-gray" onclick="startEditYear('${yr.id}')">✎</button>
+          ${!isActive ? `<button class="btn btn-sm btn-green" onclick="setActiveYear('${yr.id}')">Activează</button>` : ''}
+          <button class="btn btn-sm btn-red" onclick="deleteAgriYear('${yr.id}')">Șterge</button>
+        </div>`;
+    }
+    container.appendChild(row);
+  });
+  const inp = document.getElementById('edit-year-name');
+  if (inp) { inp.focus(); inp.select(); }
+}
+
+function saveEditYear(id) {
+  const newName = document.getElementById('edit-year-name').value.trim();
+  if (!newName) return;
+  if (state.years.find(y => y.name === newName && y.id !== id)) { alert('Există deja un an cu acest nume.'); return; }
+  const y = state.years.find(x => x.id === id); if (!y) return;
+  y.name = newName;
+  save(); renderYearList(); renderYearSelector();
+}
+
+function addAgriYear() {
+  const input = document.getElementById('new-year-name');
+  const name = input.value.trim();
+  if (!name) return;
+  if (state.years.find(y => y.name === name)) { alert('Există deja un an cu acest nume.'); return; }
+  const newId = gid();
+
+  // propunem culturile din anul activ curent ca default pentru noul an
+  const prevData = yd(state.activeYear);
+  const newCrops = {};
+  const newActiveFields = state.fields.map(f => f.id); // toate parcelele disponibile
+  if (prevData) {
+    state.fields.forEach(f => {
+      newCrops[f.id] = prevData.crops[f.id]
+        ? { ...prevData.crops[f.id] }
+        : { crop: 'Altele', color: state.cultures['Altele'] || '#64748b' };
+    });
+  }
+
+  state.years.push({ id: newId, name });
+  state.yearData[newId] = { crops: newCrops, treatments: [], tasks: [], activeFields: newActiveFields };
+  state.activeYear = newId;
+  save(); input.value = '';
+  renderYearList(); renderYearSelector(); renderAll(); updateHeaderStats();
+  alert(`Anul "${name}" a fost creat cu culturile propuse din sezonul precedent. Verifică și modifică în fișa fiecărei parcele.`);
+}
+
+function setActiveYear(id) {
+  state.activeYear = id;
+  save(); renderYearList(); renderYearSelector();
+  updateHeaderStats();
+  if (currentView === 'costs') renderCostsView();
+}
+
+function deleteAgriYear(id) {
+  const y = state.years.find(x => x.id === id);
+  if (!y) return;
+  const usedInTreatments = state.treatments.filter(t => t.yearId === id).length;
+  const usedInTasks = state.tasks.filter(t => t.yearId === id).length;
+  const msg = (usedInTreatments || usedInTasks)
+    ? `Ștergi anul "${y.name}"? Are ${usedInTreatments} tratamente și ${usedInTasks} sarcini asociate — acestea vor rămâne fără an.`
+    : `Ștergi anul "${y.name}"?`;
+  if (!confirm(msg)) return;
+  state.years = state.years.filter(x => x.id !== id);
+  if (state.activeYear === id) state.activeYear = state.years[0]?.id || null;
+  save(); renderYearList(); renderYearSelector(); updateHeaderStats();
+  if (currentView === 'costs') renderCostsView();
+}
+
+// ─── MULTI-CROP ───────────────────────────────────────────────────────────────
+function openMultiCropForm() {
+  if (!selectedFieldIds.size) return;
+  const names = [];
+  selectedFieldIds.forEach(id => { const f = state.fields.find(x => x.id === id); if (f) names.push(f.name); });
+  document.getElementById('multicrop-note').textContent = `🗂 ${selectedFieldIds.size} parcele: ${names.join(', ')}`;
+  const sel = document.getElementById('multicrop-select');
+  sel.innerHTML = '';
+  Object.keys(state.cultures).sort((a,b) => a.localeCompare(b,'ro')).forEach(c => {
+    sel.innerHTML += `<option value="${c}">${c}</option>`;
+  });
+  document.getElementById('multicrop-modal').style.display = 'flex';
+}
+function hideMultiCropForm() { document.getElementById('multicrop-modal').style.display = 'none'; }
+function saveMultiCrop() {
+  const newCrop = document.getElementById('multicrop-select').value;
+  const newColor = state.cultures[newCrop] || '#64748b';
+  const d = yd(); if (!d) return;
+  selectedFieldIds.forEach(id => {
+    if (!d.crops[id]) d.crops[id] = {};
+    d.crops[id].crop = newCrop;
+    d.crops[id].color = newColor;
+  });
+  save(); hideMultiCropForm(); clearMultiSelection(); renderAll();
+}
+
+// ─── MULTI-SELECT ─────────────────────────────────────────────────────────────
+function toggleMultiSelectMode() {
+  multiSelectMode = !multiSelectMode;
+  const btn = document.getElementById('btn-multiselect-mode');
+  if (multiSelectMode) {
+    btn.classList.add('ms-active');
+    btn.textContent = '☑ Mod Activ';
+  } else {
+    btn.classList.remove('ms-active');
+    btn.textContent = '☑ Selecție Multiplă';
+    clearMultiSelection();
+  }
+}
+
+function toggleFieldMultiSelect(id) {
+  if (selectedFieldIds.has(id)) {
+    selectedFieldIds.delete(id);
+  } else {
+    selectedFieldIds.add(id);
+  }
+  updateMultiSelectBar();
+  renderMapLayers();
+  renderFieldBar();
+}
+
+function clearMultiSelection() {
+  selectedFieldIds.clear();
+  updateMultiSelectBar();
+  renderMapLayers();
+  renderFieldBar();
+}
+
+function updateMultiSelectBar() {
+  const bar = document.getElementById('multiselect-bar');
+  const info = document.getElementById('ms-info');
+  if (!selectedFieldIds.size) {
+    bar.classList.add('hidden');
+    return;
+  }
+  bar.classList.remove('hidden');
+  let totalHa = 0;
+  selectedFieldIds.forEach(id => {
+    const f = state.fields.find(x => x.id === id);
+    if (f) totalHa += (Number(f.areaHectares) || 0);
+  });
+  info.textContent = `${selectedFieldIds.size} parcele · ${fmtN(totalHa, 2)} ha`;
+}
+
+function openMultiTreatmentForm() {
+  // calculează suprafața totală a parcelelor selectate
+  let totalHa = 0;
+  const names = [];
+  selectedFieldIds.forEach(id => {
+    const f = state.fields.find(x => x.id === id);
+    if (f) { totalHa += (Number(f.areaHectares) || 0); names.push(f.name); }
+  });
+
+  // pre-populează selectul de parcele cu toate selectate (ascuns), folosim un câmp special
+  const fSel = document.getElementById('treat-field-id');
+  fSel.innerHTML = '';
+  // adăugăm o opțiune specială "multiple" + toate parcelele selectate
+  const multiOpt = document.createElement('option');
+  multiOpt.value = '__multi__';
+  multiOpt.textContent = `[${selectedFieldIds.size} parcele selectate]`;
+  fSel.appendChild(multiOpt);
+  state.fields.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.id; opt.textContent = f.name;
+    fSel.appendChild(opt);
+  });
+  fSel.value = '__multi__';
+
+  const pSel = document.getElementById('treat-product-id'); pSel.innerHTML = '';
+  state.products.forEach(p => pSel.innerHTML += `<option value="${p.id}">${p.name}</option>`);
+
+  // setăm suprafața pre-calculată
+  document.getElementById('treat-area').value = fmtN(totalHa, 4);
+  document.getElementById('treat-date').value = new Date().toISOString().split('T')[0];
+
+  // afișăm nota cu parcelele selectate
+  let noteEl = document.getElementById('treat-multi-note');
+  if (!noteEl) {
+    noteEl = document.createElement('div');
+    noteEl.id = 'treat-multi-note';
+    noteEl.style.cssText = 'font-size:11px;color:var(--orange);background:#ea580c0a;border:1px solid var(--orange);border-radius:6px;padding:6px 8px;margin-bottom:8px';
+    document.getElementById('treatment-modal').querySelector('.modal-body').prepend(noteEl);
+  }
+  noteEl.textContent = '🗂 Parcele: ' + names.join(', ');
+  noteEl.style.display = 'block';
+
+  document.getElementById('treatment-modal').style.display = 'flex';
+  setTimeout(updateTreatCalc, 50);
+}
+
+function saveMultiTreatment() {
+  const fieldIdVal = document.getElementById('treat-field-id').value;
+  if (fieldIdVal !== '__multi__') { saveTreatment(); return; }
+  const d = yd(); if (!d) { alert('Selectează un an agricol mai întâi.'); return; }
+  const p = state.products.find(x => x.id === document.getElementById('treat-product-id').value);
+  if (!p) return;
+  const dose = Number(document.getElementById('treat-dose').value) || 0;
+  const area = Number(document.getElementById('treat-area').value) || 0;
+  const date = document.getElementById('treat-date').value;
+  const totalSubst = dose * area;
+  const totalCost = totalSubst * p.pricePerUnit;
+  let sumHa = 0;
+  selectedFieldIds.forEach(id => { const f = state.fields.find(x => x.id === id); if (f) sumHa += (Number(f.areaHectares) || 0); });
+  selectedFieldIds.forEach(id => {
+    const f = state.fields.find(x => x.id === id); if (!f) return;
+    const proportion = sumHa > 0 ? (Number(f.areaHectares) || 0) / sumHa : 1 / selectedFieldIds.size;
+    d.treatments.push({ id: gid(), date, fieldId: id, productName: p.name, totalCost: Math.round(totalCost * proportion * 100) / 100, dosePerHa: dose });
+  });
+  save(); hideTreatmentForm(); updateHeaderStats(); clearMultiSelection(); renderTreatmentsView();
+}
+
+async function forceSyncNow() {
+  if (!currentUser) { alert('Nu ești autentificat.'); return; }
+  showSync('syncing', 'Se sincronizează...');
+  await syncToCloud();
+}
+
+// ─── BACKUP & BACKEND SYSTEMS
+function exportBackup() {
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+  const a = document.createElement('a'); a.setAttribute("href", dataStr);
+  a.setAttribute("download", `smartfarm_backup_${new Date().toISOString().split('T')[0]}.json`);
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function importBackup(input) {
+  const file = input.files[0]; if(!file) return;
+  const r = new FileReader();
+  r.onload = function(e) {
+    applyRawState(JSON.parse(e.target.result));
+    save();
+    renderAll(); renderYearSelector(); zoomToAllFields();
+    alert('Datele au fost restaurate și sincronizate în cloud.');
+  };
+  r.readAsText(file);
+}
+function resetAll() {
+  if(confirm("Atenție! Ștergi definitiv toate datele?")) {
+    localStorage.removeItem(SK);
+    state = { fields:[], products:[], cultures:{...DEFAULT_CULTURES}, productCategories:[...DEFAULT_PRODUCT_CATEGORIES], productUnits:[...DEFAULT_PRODUCT_UNITS], years:[], activeYear:null, yearData:{} };
+    save(); renderAll(); renderYearSelector();
+  }
+}
+
+// ── SERVICE WORKER ────────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
