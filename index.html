@@ -517,7 +517,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
         <div id="multiselect-bar" class="hidden">
           <span id="ms-info">0 parcele · 0.00 ha</span>
           <button class="btn btn-sm btn-green" onclick="openMultiCropForm()">🌱 Schimbă Cultura</button>
-          <button class="btn btn-sm btn-orange" onclick="openMultiTreatmentForm()">💊 Aplică Tratament</button>
+          <button class="btn btn-sm btn-orange" onclick="openMultiSelectTreatmentForm()">📋 Înregistrează Lucrare</button>
           <button class="btn btn-sm btn-gray" onclick="clearMultiSelection()">✕ Golește</button>
         </div>
         <div id="crop-panel">
@@ -634,6 +634,16 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
     </div>
 
     <div id="settings-view" class="scroll-view" style="display:none">
+
+      <div class="culture-manager-box">
+        <span style="font-size:11px;font-weight:800;color:var(--orange);letter-spacing:.06em;display:block;margin-bottom:8px;">⛽ PREȚ MOTORINĂ</span>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input type="number" class="field-input" id="diesel-price-input" step="0.01" style="flex:1;background:#fff;" placeholder="lei/litru"/>
+          <span style="font-size:12px;color:var(--muted);white-space:nowrap;">lei / litru</span>
+          <button class="btn btn-orange" onclick="saveDieselPrice()">Salvează</button>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;" id="diesel-price-note"></div>
+      </div>
 
       <div class="culture-manager-box">
         <span style="font-size:11px;font-weight:800;color:var(--teal);letter-spacing:.06em;display:block;margin-bottom:8px;">🚜 TIPURI LUCRĂRI</span>
@@ -805,7 +815,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
         <label class="field-label">Preț achiziție/U.M. (lei) — opțional</label>
         <input type="number" class="field-input" id="prod-buy-price" step="0.01" placeholder="Prețul la care ai cumpărat"/>
       </div>
-      <div class="modal-actions"><button class="btn btn-purple" style="width:100%;" onclick="saveProduct()">Salvează în Stoc</button></div>
+      <input type="hidden" id="prod-edit-id"/>
+      <div class="modal-actions"><button class="btn btn-purple" style="width:100%;" id="prod-save-btn" onclick="saveProduct()">Salvează în Stoc</button></div>
     </div>
   </div>
 </div>
@@ -840,8 +851,16 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
     <div class="modal-body">
       <div id="treat-multi-note" style="display:none;font-size:11px;color:var(--orange);background:#ea580c0a;border:1px solid var(--orange);border-radius:6px;padding:6px 8px;margin-bottom:10px;"></div>
 
+      <input type="hidden" id="treat-edit-id"/>
       <div class="two-col" style="margin-bottom:10px;">
-        <div><label class="field-label">Dată *</label><input type="date" class="field-input" id="treat-date"/></div>
+        <div>
+          <label class="field-label">Perioadă lucrare *</label>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input type="date" class="field-input" id="treat-date" style="flex:1;"/>
+            <span style="font-size:11px;color:var(--muted);flex-shrink:0;">până</span>
+            <input type="date" class="field-input" id="treat-date-end" style="flex:1;"/>
+          </div>
+        </div>
         <div>
           <label class="field-label">Suprafață totală (ha)</label>
           <input type="number" class="field-input" id="treat-total-area" step="0.01" placeholder="calculat automat" oninput="updateTreatCalc()"/>
@@ -887,11 +906,15 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 
       <!-- Combustibil -->
       <div style="background:var(--surface2);border:1px solid var(--border-light);border-radius:8px;padding:10px;margin-bottom:14px;">
-        <div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">⛽ Combustibil (opțional)</div>
-        <div class="two-col">
-          <div><label class="field-label">Litri</label><input type="number" class="field-input" id="treat-fuel-liters" step="0.1" placeholder="0" oninput="updateTreatCalc()"/></div>
-          <div><label class="field-label">Preț/litru (lei)</label><input type="number" class="field-input" id="treat-fuel-price" step="0.01" placeholder="0" oninput="updateTreatCalc()"/></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:13px;">⛽</span>
+          <div style="flex:1;">
+            <label class="field-label">Motorină (litri)</label>
+            <input type="number" class="field-input" id="treat-fuel-liters" step="0.1" placeholder="0" oninput="updateTreatCalc()"/>
+          </div>
+          <div style="font-size:11px;color:var(--muted);text-align:right;flex-shrink:0;" id="fuel-cost-preview">—</div>
         </div>
+        <input type="hidden" id="treat-fuel-price"/>
       </div>
 
       <div style="margin-bottom:14px;">
@@ -927,6 +950,7 @@ let DEFAULT_CULTURES = {
 
 const DEFAULT_PRODUCT_CATEGORIES = ['Erbicid', 'Fungicid', 'Insecticid', 'Îngrășământ', 'Regulator'];
 const DEFAULT_PRODUCT_UNITS = ['L', 'kg', 'g', 'ml', 't', 'buc'];
+const DEFAULT_DIESEL_PRICE = 7.5; // lei/litru implicit
 const DEFAULT_WORK_TYPES = ['Arătură', 'Discuit', 'Cultivat', 'Semănat', 'Fertilizare', 'Erbicidare', 'Fungicidare', 'Insecticidare', 'Irigare', 'Recoltare', 'Balotat', 'Transport', 'Altele'];
 
 let state = {
@@ -937,6 +961,7 @@ let state = {
   productCategories: [...DEFAULT_PRODUCT_CATEGORIES],
   productUnits: [...DEFAULT_PRODUCT_UNITS],
   workTypes: [...DEFAULT_WORK_TYPES],
+  dieselPrice: DEFAULT_DIESEL_PRICE,
   years: [],
   activeYear: null,
   yearData: {}
@@ -1015,6 +1040,7 @@ function applyRawState(raw) {
   if (!state.productUnits || !state.productUnits.length) state.productUnits = [...DEFAULT_PRODUCT_UNITS];
   if (!state.workTypes || !state.workTypes.length) state.workTypes = [...DEFAULT_WORK_TYPES];
   if (!state.machinery) state.machinery = [];
+  if (!state.dieselPrice) state.dieselPrice = DEFAULT_DIESEL_PRICE;
   if (!state.years) state.years = [];
   if (!state.yearData) state.yearData = {};
   if (!state.activeYear && state.years.length) state.activeYear = state.years[0].id;
@@ -1180,6 +1206,16 @@ function onUserLoggedIn(user) {
   loadFromCloud().catch(() => { load(); }).finally(() => { initApp(); });
 }
 
+
+function saveDieselPrice() {
+  const val = Number(document.getElementById('diesel-price-input').value);
+  if (!val || val <= 0) return;
+  state.dieselPrice = val;
+  save();
+  const note = document.getElementById('diesel-price-note');
+  if (note) note.textContent = 'Salvat: ' + val + ' lei/litru';
+  setTimeout(function(){if(note)note.textContent='';}, 3000);
+}
 function initApp() {
   initMap();
   renderAll();
@@ -1255,7 +1291,11 @@ function switchView(view) {
     else if (view === 'machinery') { renderMachineryView(); }
     else if (view === 'treatments') { renderTreatmentsView(); }
     else if (view === 'costs') renderCostsView();
-    else if (view === 'settings') { renderCulturesPanel(); renderProductCategoriesPanel(); renderProductUnitsPanel(); renderWorkTypesPanel(); const br = document.getElementById('btn-reset-settings'); if(br) br.style.display = state.fields.length ? 'block' : 'none'; }
+    else if (view === 'settings') { renderCulturesPanel(); renderProductCategoriesPanel(); renderProductUnitsPanel(); renderWorkTypesPanel();
+    // init diesel price
+    const dpInput = document.getElementById('diesel-price-input');
+    if (dpInput) dpInput.value = state.dieselPrice || DEFAULT_DIESEL_PRICE;
+    const br = document.getElementById('btn-reset-settings'); if(br) br.style.display = state.fields.length ? 'block' : 'none'; }
   }
 }
 
@@ -1588,24 +1628,30 @@ function getSubstancesData(area = null) {
 
 function updateTreatCalc() {
   const area = getTreatTotalArea();
-  const substances = substanceRows.map(id => {
-    const prodId = document.getElementById('subst-prod-' + id)?.value;
-    const dose = Number(document.getElementById('subst-dose-' + id)?.value) || 0;
-    const p = state.products.find(x => x.id === prodId);
+  const substances = substanceRows.map(function(id) {
+    const prodId = document.getElementById('subst-prod-' + id) && document.getElementById('subst-prod-' + id).value;
+    const dose = Number(document.getElementById('subst-dose-' + id) && document.getElementById('subst-dose-' + id).value) || 0;
+    const p = state.products.find(function(x){return x.id===prodId;});
     if (!p || !dose || !area) return null;
     const cost = dose * area * (p.pricePerUnit || 0);
     return { productName: p.name, unit: p.unit, dose, area, cost };
   }).filter(Boolean);
-  const fuelL = Number(document.getElementById('treat-fuel-liters')?.value) || 0;
-  const fuelP = Number(document.getElementById('treat-fuel-price')?.value) || 0;
-  const fuelCost = fuelL * fuelP;
-  const substCost = substances.reduce((s, x) => s + x.cost, 0);
+  const fuelL = Number(document.getElementById('treat-fuel-liters') && document.getElementById('treat-fuel-liters').value) || 0;
+  const dieselP = state.dieselPrice || DEFAULT_DIESEL_PRICE;
+  const fuelCost = fuelL * dieselP;
+  // update fuel cost preview
+  const fuelPreview = document.getElementById('fuel-cost-preview');
+  if (fuelPreview) fuelPreview.textContent = fuelL > 0 ? fmtN(fuelL,1) + 'L × ' + dieselP + ' lei = ' + fmt(fuelCost) + ' lei' : '—';
+  // also set hidden fuel price field
+  const fpEl = document.getElementById('treat-fuel-price');
+  if (fpEl) fpEl.value = dieselP;
+  const substCost = substances.reduce(function(s,x){return s+x.cost;}, 0);
   const total = substCost + fuelCost;
   const calc = document.getElementById('treat-calc'); if (!calc) return;
-  let lines = substances.map(s => `${s.productName}: ${s.dose} ${s.unit}/ha × ${s.area} ha = <strong>${fmt(s.cost)} lei</strong>`);
-  if (fuelCost > 0) lines.push(`⛽ ${fuelL}L × ${fuelP} lei = <strong>${fmt(fuelCost)} lei</strong>`);
-  if (!lines.length) { calc.innerHTML = area > 0 ? 'Adaugă substanțe sau combustibil...' : 'Selectează parcele și adaugă substanțe...'; return; }
-  calc.innerHTML = lines.join('<br>') + `<br><span style="font-size:13px;font-weight:800;color:var(--green)">Total: ${fmt(total)} lei</span>`;
+  const lines = substances.map(function(s){return s.productName + ': ' + s.dose + ' ' + s.unit + '/ha x ' + s.area + ' ha = <strong>' + fmt(s.cost) + ' lei</strong>';});
+  if (fuelCost > 0) lines.push('&#9981; ' + fuelL + 'L x ' + dieselP + ' lei = <strong>' + fmt(fuelCost) + ' lei</strong>');
+  if (!lines.length) { calc.innerHTML = area > 0 ? 'Adauga substante sau combustibil...' : 'Selecteaza parcele si adauga substante...'; return; }
+  calc.innerHTML = lines.join('<br>') + '<br><span style="font-size:13px;font-weight:800;color:var(--green)">Total: ' + fmt(total) + ' lei</span>';
 }
 
 // ─── UTILAJE & IMPELMENTE ─────────────────────────────────────────────────────
@@ -2590,25 +2636,37 @@ function renderProductsView() {
   populateProdCatSelect();
   populateProdUnitSelect();
   const root = document.getElementById('products-list'); if(!root) return; root.innerHTML = '';
-  if(!state.products.length) { root.innerHTML = '<div class="no-data">Niciun produs în magazie.</div>'; return; }
-  // grupăm pe categorii
+  if(!state.products.length) { root.innerHTML = '<div class="no-data">Niciun produs in magazie.</div>'; return; }
   const byCat = {};
   state.products.forEach(p => { if (!byCat[p.category]) byCat[p.category] = []; byCat[p.category].push(p); });
   Object.keys(byCat).forEach(cat => {
-    root.innerHTML += `<div style="font-size:10px;font-weight:800;color:var(--purple);letter-spacing:.06em;margin:6px 0 3px">${cat.toUpperCase()}</div>`;
-    byCat[cat].forEach(p => {
-      root.innerHTML += `<div class="prod-card" style="margin-bottom:5px;display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <strong>${p.name}</strong>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">
-            Stoc: <span style="color:var(--text);font-weight:700">${p.stock} ${p.unit}</span>
-            · Vânzare: <span style="color:var(--orange);font-weight:700">${p.pricePerUnit} lei/${p.unit}</span>
-            ${p.buyPrice ? `· Achiziție: <span style="color:var(--blue);font-weight:700">${p.buyPrice} lei/${p.unit}</span>` : ''}
-          </div>
-        </div>
-        <button class="btn btn-sm btn-red" onclick="deleteProduct('${p.id}')">🗑</button>
-      </div>`;
+    const count = byCat[cat].length;
+    const section = document.createElement('div');
+    section.style.cssText = 'margin-bottom:8px;';
+    const hdr = document.createElement('div');
+    hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border-light);border-radius:10px;padding:10px 13px;cursor:pointer;user-select:none;';
+    hdr.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:10px;font-weight:800;color:var(--purple);letter-spacing:.06em;">' + cat.toUpperCase() + '</span><span style="font-size:11px;color:var(--dim);">' + count + ' produs' + (count>1?'e':'') + '</span></div><span class="cat-arr" style="color:var(--muted);font-size:14px;transition:transform .2s;">&#9662;</span>';
+    const body = document.createElement('div');
+    body.style.cssText = 'overflow:hidden;transition:max-height .25s ease;max-height:2000px;';
+    const inner = document.createElement('div');
+    inner.style.cssText = 'padding:6px 0;display:flex;flex-direction:column;gap:6px;';
+    byCat[cat].forEach(function(p) {
+      const card = document.createElement('div');
+      card.className = 'prod-card';
+      card.style.cssText = 'display:flex;justify-content:space-between;align-items:center;';
+      card.innerHTML = '<div><strong>' + p.name + '</strong><div style="font-size:11px;color:var(--muted);margin-top:2px">Stoc: <span style="color:var(--text);font-weight:700">' + p.stock + ' ' + p.unit + '</span> &middot; Vanzare: <span style="color:var(--orange);font-weight:700">' + p.pricePerUnit + ' lei/' + p.unit + '</span>' + (p.buyPrice ? ' &middot; Achizitie: <span style="color:var(--blue);font-weight:700">' + p.buyPrice + ' lei/' + p.unit + '</span>' : '') + '</div></div><div style="display:flex;gap:4px;"><button class="btn btn-sm btn-gray" onclick="editProduct(\'' + p.id + '\')">&#9998;</button><button class="btn btn-sm btn-red" onclick="deleteProduct(\'' + p.id + '\')">&#128465;</button></div>';
+      inner.appendChild(card);
     });
+    body.appendChild(inner);
+    let open = true;
+    hdr.onclick = function() {
+      open = !open;
+      body.style.maxHeight = open ? '2000px' : '0';
+      hdr.querySelector('.cat-arr').style.transform = open ? '' : 'rotate(-90deg)';
+    };
+    section.appendChild(hdr);
+    section.appendChild(body);
+    root.appendChild(section);
   });
 }
 
@@ -2619,25 +2677,38 @@ function openProductForm() {
   document.getElementById('prod-stock').value = '';
   document.getElementById('prod-price').value = '';
   document.getElementById('prod-buy-price').value = '';
+  document.getElementById('prod-edit-id').value = '';
+  document.getElementById('prod-save-btn').textContent = 'Salveaza in Stoc';
+  document.getElementById('product-modal').querySelector('.modal-title').textContent = 'Produs Magazie';
+  document.getElementById('product-modal').style.display = 'flex';
+}
+function editProduct(id) {
+  const p = state.products.find(function(x){return x.id===id;}); if(!p) return;
+  populateProdCatSelect();
+  populateProdUnitSelect();
+  document.getElementById('prod-name').value = p.name||'';
+  document.getElementById('prod-cat').value = p.category||'';
+  document.getElementById('prod-unit').value = p.unit||'';
+  document.getElementById('prod-stock').value = p.stock||'';
+  document.getElementById('prod-price').value = p.pricePerUnit||'';
+  document.getElementById('prod-buy-price').value = p.buyPrice||'';
+  document.getElementById('prod-edit-id').value = id;
+  document.getElementById('prod-save-btn').textContent = 'Actualizeaza';
+  document.getElementById('product-modal').querySelector('.modal-title').textContent = 'Editeaza Produs';
   document.getElementById('product-modal').style.display = 'flex';
 }
 function hideProductForm() { document.getElementById('product-modal').style.display = 'none'; }
 function saveProduct() {
-  const name = document.getElementById('prod-name').value.trim();
-  if (!name) return;
-  state.products.push({
-    id: gid(), name,
-    category: document.getElementById('prod-cat').value,
-    unit: document.getElementById('prod-unit').value,
-    stock: Number(document.getElementById('prod-stock').value)||0,
-    pricePerUnit: Number(document.getElementById('prod-price').value)||0,
-    buyPrice: Number(document.getElementById('prod-buy-price').value)||0
-  });
+  const name = document.getElementById('prod-name').value.trim(); if(!name) return;
+  const editId = document.getElementById('prod-edit-id').value;
+  const data = { name, category:document.getElementById('prod-cat').value, unit:document.getElementById('prod-unit').value, stock:Number(document.getElementById('prod-stock').value)||0, pricePerUnit:Number(document.getElementById('prod-price').value)||0, buyPrice:Number(document.getElementById('prod-buy-price').value)||0 };
+  if(editId){ const idx=state.products.findIndex(function(p){return p.id===editId;}); if(idx>=0) state.products[idx]=Object.assign({},state.products[idx],data); }
+  else state.products.push(Object.assign({id:gid()},data));
   save(); hideProductForm(); renderProductsView();
 }
 function deleteProduct(id) {
-  if (!confirm('Ștergi produsul din magazie?')) return;
-  state.products = state.products.filter(p => p.id !== id);
+  if(!confirm('Stergi produsul din magazie?')) return;
+  state.products=state.products.filter(function(p){return p.id!==id;});
   save(); renderProductsView();
 }
 
@@ -2654,9 +2725,12 @@ function renderTreatmentsView() {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
         <div>
           <strong style="font-family:var(--font-display);font-size:13px;">${t.workType || 'Lucrare'}</strong>
-          ${t.date ? `<span style="color:var(--muted);font-size:11px;"> · ${t.date}</span>` : ''}
+          ${t.date ? `<span style="color:var(--muted);font-size:11px;"> · ${t.date}${t.dateEnd && t.dateEnd !== t.date ? ' — '+t.dateEnd : ''}</span>` : ''}
         </div>
-        <strong style="color:var(--orange);font-size:13px;">${fmt(t.totalCost)} lei</strong>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <strong style="color:var(--orange);font-size:13px;">${fmt(t.totalCost)} lei</strong>
+          <button class="btn btn-sm btn-gray" onclick="editTreatment('${t.id}')" style="padding:2px 7px;">✎</button>
+        </div>
       </div>
       <div style="font-size:11px;color:var(--muted);">📍 ${field?.name || '—'}</div>
       ${substLine !== '—' ? `<div style="font-size:11px;color:var(--text);margin-top:3px;">🧪 ${substLine}</div>` : ''}
@@ -2733,13 +2807,52 @@ function openTreatmentForm() {
   const areaInput = document.getElementById('treat-total-area');
   if (areaInput) { areaInput.value = ''; delete areaInput.dataset.manual; }
   document.getElementById('treat-fuel-liters').value = '';
-  document.getElementById('treat-fuel-price').value = '';
+  document.getElementById('treat-fuel-price') && (document.getElementById('treat-fuel-price').value = state.dieselPrice || DEFAULT_DIESEL_PRICE);
   document.getElementById('treat-notes').value = '';
   document.getElementById('treat-date').value = new Date().toISOString().split('T')[0];
+  const dateEnd = document.getElementById('treat-date-end');
+  if (dateEnd) dateEnd.value = '';
+  const editIdEl = document.getElementById('treat-edit-id');
+  if (editIdEl) editIdEl.value = '';
   const noteEl = document.getElementById('treat-multi-note');
   if (noteEl) noteEl.style.display = 'none';
+  const modal = document.getElementById('treatment-modal');
+  modal.querySelector('.modal-title').textContent = 'Inregistreaza Lucrare';
   updateTreatCalc();
-  document.getElementById('treatment-modal').style.display = 'flex';
+  modal.style.display = 'flex';
+}
+
+function editTreatment(id) {
+  const d = yd(); if (!d) return;
+  const t = d.treatments.find(function(x){return x.id===id;}); if (!t) return;
+  openTreatmentForm();
+  setTimeout(function() {
+    const editIdEl = document.getElementById('treat-edit-id');
+    if (editIdEl) editIdEl.value = id;
+    document.getElementById('treat-date').value = t.date||'';
+    const dateEnd = document.getElementById('treat-date-end');
+    if (dateEnd) dateEnd.value = t.dateEnd||'';
+    if (t.workType) document.getElementById('treat-work-type').value = t.workType;
+    const tSel = document.getElementById('treat-tractor');
+    if (tSel && t.tractorId) tSel.value = t.tractorId;
+    const iSel = document.getElementById('treat-implement');
+    if (iSel && t.implementId) iSel.value = t.implementId;
+    document.getElementById('treat-notes').value = t.notes||'';
+    document.getElementById('treat-fuel-liters').value = t.fuelLiters||'';
+    // repopulate fields
+    const fieldIds = t.fieldIds || (t.fieldId ? [t.fieldId] : []);
+    renderTreatFieldPicker(fieldIds);
+    updateTreatFieldSummary();
+    // repopulate substances
+    clearSubstanceRows();
+    if (t.substances && t.substances.length) {
+      t.substances.forEach(function(s){ addSubstanceRow(s.prodId, s.dose, s.area); });
+    } else {
+      addSubstanceRow();
+    }
+    document.getElementById('treatment-modal').querySelector('.modal-title').textContent = 'Editeaza Lucrare';
+    updateTreatCalc();
+  }, 100);
 }
 function hideTreatmentForm() {
   document.getElementById('treatment-modal').style.display = 'none';
@@ -2747,13 +2860,14 @@ function hideTreatmentForm() {
   if (noteEl) noteEl.style.display = 'none';
 }
 function saveTreatment() {
-  const d = yd(); if (!d) { alert('Selectează un an agricol mai întâi.'); return; }
-  if (!treatSelectedFieldIds.size) { alert('Selectează cel puțin o parcelă.'); return; }
+  const d = yd(); if (!d) { alert('Selecteaza un an agricol mai intai.'); return; }
+  if (!treatSelectedFieldIds.size) { alert('Selecteaza cel putin o parcela.'); return; }
+  const editId = document.getElementById('treat-edit-id') ? document.getElementById('treat-edit-id').value : '';
   const totalArea = getTreatTotalArea();
   const substances = getSubstancesData(totalArea);
   const fuelL = Number(document.getElementById('treat-fuel-liters').value) || 0;
-  const fuelP = Number(document.getElementById('treat-fuel-price').value) || 0;
-  const fuelCost = fuelL * fuelP;
+  const dieselP = state.dieselPrice || DEFAULT_DIESEL_PRICE;
+  const fuelCost = fuelL * dieselP;
   const substCost = substances.reduce((s, x) => s + x.cost, 0);
   const totalCost = substCost + fuelCost;
   const workType = document.getElementById('treat-work-type').value;
@@ -2768,15 +2882,21 @@ function saveTreatment() {
   fieldIds.forEach(fieldId => {
     const f = state.fields.find(x => x.id === fieldId); if (!f) return;
     const prop = (Number(f.areaHectares)||0) / totalFieldHa;
-    d.treatments.push({
-      id: gid(), date, fieldId, workType, tractorId, tractorName, implementId, implementName, notes,
-      substances: substances.map(s => ({ ...s, cost: Math.round(s.cost * prop * 100)/100 })),
-      fuelLiters: Math.round(fuelL * prop * 10)/10, fuelPricePerL: fuelP,
+    const tRecord = {
+      id: gid(), date, dateEnd: document.getElementById('treat-date-end') ? document.getElementById('treat-date-end').value : '',
+      fieldId, fieldIds: fieldIds, workType, tractorId, tractorName, implementId, implementName, notes,
+      substances: substances.map(function(s){return Object.assign({},s,{cost:Math.round(s.cost*prop*100)/100});}),
+      fuelLiters: Math.round(fuelL * prop * 10)/10, fuelPricePerL: dieselP,
       fuelCost: Math.round(fuelCost * prop * 100)/100,
       totalCost: Math.round(totalCost * prop * 100)/100,
-      productName: substances.map(s => s.productName).join(', ') || 'Lucrare mecanică',
-      dosePerHa: substances[0]?.dose || 0
-    });
+      productName: substances.map(function(s){return s.productName;}).join(', ') || 'Lucrare mecanica',
+      dosePerHa: substances[0] ? substances[0].dose : 0
+    };
+    if (editId) {
+      const idx = d.treatments.findIndex(function(x){return x.id===editId;});
+      if (idx >= 0) { d.treatments[idx] = Object.assign({}, d.treatments[idx], tRecord, {id: editId}); return; }
+    }
+    d.treatments.push(tRecord);
   });
   save(); hideTreatmentForm(); updateHeaderStats();
   if (selectedFieldId) openDetail(selectedFieldId); else renderTreatmentsView();
@@ -3101,6 +3221,7 @@ function updateMultiSelectBar() {
   info.textContent = `${selectedFieldIds.size} parcele · ${fmtN(totalHa, 2)} ha`;
 }
 
+function openMultiSelectTreatmentForm() { openMultiTreatmentForm(); }
 function openMultiTreatmentForm() {
   // calculează suprafața totală a parcelelor selectate
   let totalHa = 0;
