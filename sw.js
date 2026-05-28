@@ -1,4 +1,4 @@
-const CACHE = 'smartfarm-v1';
+const CACHE = 'smartfarm-v3';
 const OFFLINE_ASSETS = [
   './index.html',
   './manifest.json',
@@ -8,43 +8,46 @@ const OFFLINE_ASSETS = [
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
 ];
 
-// Instalare — cache assets principale
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(cache => {
-      return Promise.allSettled(
-        OFFLINE_ASSETS.map(url => cache.add(url).catch(() => {}))
-      );
-    })
+    caches.open(CACHE).then(cache =>
+      Promise.allSettled(OFFLINE_ASSETS.map(url => cache.add(url).catch(() => {})))
+    )
   );
-  self.skipWaiting();
+  self.skipWaiting(); // activare imediată fără să aștepte tab-uri vechi
 });
 
-// Activare — curăță cache vechi
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
     )
   );
-  self.clients.claim();
+  self.clients.claim(); // preia controlul imediat
 });
 
-// Fetch — cache first pentru assets, network first pentru Supabase
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Supabase API — sempre network, niciodată cache
-  if (url.hostname.includes('supabase.co')) {
-    return; // lasă browser-ul să gestioneze normal
-  }
+  // Supabase — network only, niciodată cache
+  if (url.hostname.includes('supabase.co')) return;
 
-  // Google Maps tiles — network only
-  if (url.hostname.includes('google.com') || url.hostname.includes('googleapis.com') && url.pathname.includes('vt')) {
+  // Tile-uri hartă — network only
+  if (url.hostname.includes('google.com') || url.hostname.includes('arcgisonline.com')) return;
+
+  // index.html — network first, fallback cache (asigură ultima versiune)
+  if (url.pathname.endsWith('/') || url.pathname.endsWith('index.html') || url.pathname === '/smartfarm/') {
+    e.respondWith(
+      fetch(e.request).then(response => {
+        const clone = response.clone();
+        caches.open(CACHE).then(cache => cache.put(e.request, clone));
+        return response;
+      }).catch(() => caches.match('./index.html'))
+    );
     return;
   }
 
-  // Pentru restul — cache first cu fallback network
+  // Restul — cache first cu fallback network
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
@@ -55,10 +58,7 @@ self.addEventListener('fetch', e => {
         }
         return response;
       }).catch(() => {
-        // offline și nu e în cache — returnăm index.html pentru navigare
-        if (e.request.destination === 'document') {
-          return caches.match('./index.html');
-        }
+        if (e.request.destination === 'document') return caches.match('./index.html');
       });
     })
   );
