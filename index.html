@@ -767,14 +767,14 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
     <div id="fields-view" class="scroll-view" style="display:none">
       <div class="filter-row">
         <div class="filter-chips" id="fields-filter-chips"></div>
-        <div style="display:flex;gap:6px;">
-          <select id="fields-sort" class="field-input" style="font-size:11px;height:30px;width:auto;" onchange="renderFieldsView()">
-            <option value="name">A-Z Nume</option>
-            <option value="ha-desc">Ha ↓</option>
-            <option value="ha-asc">Ha ↑</option>
-            <option value="cost-desc">Cost ↓</option>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <select id="fields-sort" class="field-input" style="font-size:12px;height:28px;width:auto;padding:2px 8px;border-radius:8px;" onchange="renderFieldsView()">
+            <option value="name">↕ A-Z Nume</option>
+            <option value="ha-desc">↕ Ha ↓</option>
+            <option value="ha-asc">↕ Ha ↑</option>
+            <option value="cost-desc">↕ Cost ↓</option>
           </select>
-          <button class="btn btn-sm btn-blue" onclick="showImport()">📂 Import</button>
+          <button class="btn btn-sm btn-blue" onclick="showImport()" style="gap:4px;">+ Import SHP</button>
         </div>
       </div>
       <div id="fields-list" class="card-list"></div>
@@ -1178,7 +1178,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 
       <div style="margin-bottom:10px;">
         <label class="field-label">Tip lucrare</label>
-        <select class="field-input" id="treat-work-type" onchange="filterSubstancesByWorkType()"></select>
+        <div id="treat-work-type-chips" style="display:flex;flex-wrap:wrap;gap:5px;padding:8px;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;min-height:36px;"></div>
+        <input type="hidden" id="treat-work-type"/>
       </div>
 
       <div class="two-col" style="margin-bottom:10px;">
@@ -2005,8 +2006,18 @@ function getProductsForWorkType(workType) {
 }
 
 function filterSubstancesByWorkType() {
-  const workType = document.getElementById('treat-work-type')?.value || '';
-  const products = getProductsForWorkType(workType);
+  // combinăm produsele din toate tipurile selectate
+  let products;
+  if (selectedWorkTypes.size === 0) {
+    products = state.products;
+  } else {
+    const allMatched = new Set();
+    selectedWorkTypes.forEach(wt => {
+      getProductsForWorkType(wt).forEach(p => allMatched.add(p));
+    });
+    products = allMatched.size > 0 ? [...allMatched] : state.products;
+  }
+
   const allProducts = state.products;
   const isFiltered = products.length !== allProducts.length;
 
@@ -2014,15 +2025,14 @@ function filterSubstancesByWorkType() {
   const substSection = document.getElementById('substances-list');
   const existingNote = document.getElementById('subst-filter-note');
   if (existingNote) existingNote.remove();
-  if (isFiltered && workType && substSection) {
+  if (isFiltered && selectedWorkTypes.size > 0 && substSection) {
     const note = document.createElement('div');
     note.id = 'subst-filter-note';
     note.style.cssText = 'font-size:11px;color:var(--blue);background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:4px 8px;margin-bottom:6px;';
-    note.textContent = '🔍 Filtrare activă: ' + products.length + ' produse pentru "' + workType + '"';
+    note.textContent = '🔍 ' + products.length + ' produse pentru: ' + [...selectedWorkTypes].join(' + ');
     substSection.before(note);
   }
 
-  // actualizează toate select-urile de produse existente
   substanceRows.forEach(id => {
     const sel = document.getElementById('subst-prod-' + id);
     if (!sel) return;
@@ -2035,12 +2045,59 @@ function filterSubstancesByWorkType() {
   updateTreatCalc();
 }
 
+let selectedWorkTypes = new Set();
+
 function populateWorkTypeSelect() {
-  const sel = document.getElementById('treat-work-type'); if (!sel) return;
-  const prev = sel.value;
-  sel.innerHTML = '<option value="">— Selectează tipul lucrării —</option>';
-  state.workTypes.forEach(w => sel.innerHTML += `<option value="${w}">${w}</option>`);
-  if (state.workTypes.includes(prev)) sel.value = prev;
+  const container = document.getElementById('treat-work-type-chips'); if (!container) return;
+  container.innerHTML = '';
+  state.workTypes.forEach(w => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.style.cssText = 'padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);transition:all .15s;white-space:nowrap;line-height:1.4;';
+    chip.textContent = w;
+    chip.dataset.wt = w;
+    chip.onclick = () => {
+      if (selectedWorkTypes.has(w)) {
+        selectedWorkTypes.delete(w);
+        chip.style.background = 'var(--surface)';
+        chip.style.color = 'var(--muted)';
+        chip.style.borderColor = 'var(--border)';
+      } else {
+        selectedWorkTypes.add(w);
+        chip.style.background = 'var(--green-soft)';
+        chip.style.color = 'var(--green)';
+        chip.style.borderColor = 'var(--green)';
+      }
+      // update hidden input cu prima valoare (pentru compatibilitate)
+      const hidden = document.getElementById('treat-work-type');
+      if (hidden) hidden.value = [...selectedWorkTypes].join(', ');
+      filterSubstancesByWorkType();
+    };
+    container.appendChild(chip);
+  });
+}
+
+function setWorkTypeChips(types) {
+  // types = string sau array de tipuri de selectat
+  selectedWorkTypes.clear();
+  const arr = Array.isArray(types) ? types : (types ? [types] : []);
+  arr.forEach(t => { if (t) t.split(',').forEach(s => { const st = s.trim(); if (st) selectedWorkTypes.add(st); }); });
+  // actualizăm vizual chips-urile
+  const container = document.getElementById('treat-work-type-chips'); if (!container) return;
+  container.querySelectorAll('button').forEach(chip => {
+    const wt = chip.dataset.wt;
+    if (selectedWorkTypes.has(wt)) {
+      chip.style.background = 'var(--green-soft)';
+      chip.style.color = 'var(--green)';
+      chip.style.borderColor = 'var(--green)';
+    } else {
+      chip.style.background = 'var(--surface)';
+      chip.style.color = 'var(--muted)';
+      chip.style.borderColor = 'var(--border)';
+    }
+  });
+  const hidden = document.getElementById('treat-work-type');
+  if (hidden) hidden.value = [...selectedWorkTypes].join(', ');
 }
 
 // ─── SUBSTANȚE MULTIPLE ───────────────────────────────────────────────────────
@@ -3105,7 +3162,7 @@ function executeTask(id) {
     renderTreatFieldPicker(fieldIds);
     updateTreatFieldSummary();
     const sel = document.getElementById('treat-work-type');
-    if (sel && t.type) { sel.value = t.type; filterSubstancesByWorkType(); }
+    if (sel && t.type) { sel.value = t.type; setWorkTypeChips(t.type); filterSubstancesByWorkType(); }
     document.getElementById('treat-date').value = new Date().toISOString().split('T')[0];
     updateTreatCalc();
   }, 150);
@@ -4086,6 +4143,7 @@ function getTreatTotalArea() {
 }
 
 function openTreatmentForm() {
+  selectedWorkTypes.clear();
   populateWorkTypeSelect();
   populateMachinerySelects();
   renderTreatFieldPicker();
@@ -4119,7 +4177,11 @@ function editTreatment(id) {
     document.getElementById('treat-date').value = t.date||'';
     const dateEnd = document.getElementById('treat-date-end');
     if (dateEnd) dateEnd.value = t.dateEnd||'';
-    if (t.workType) { document.getElementById('treat-work-type').value = t.workType; filterSubstancesByWorkType(); }
+    if (t.workType) {
+      document.getElementById('treat-work-type').value = t.workType;
+      setWorkTypeChips(t.workType);
+      filterSubstancesByWorkType();
+    }
     const tSel = document.getElementById('treat-tractor');
     if (tSel && t.tractorId) tSel.value = t.tractorId;
     const iSel = document.getElementById('treat-implement');
