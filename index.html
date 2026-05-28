@@ -566,7 +566,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
       <div class="stats-grid">
         <div class="stat-item"><div class="stat-label">CULTURĂ</div><div class="stat-val" id="detail-crop" style="color:var(--green)"></div></div>
         <div class="stat-item"><div class="stat-label">SUPRAFAȚĂ REALĂ</div><div class="stat-val" id="detail-area" style="color:var(--blue)"></div></div>
-        <div class="stat-item"><div class="stat-label">FINANCIAR TRATAMENTE</div><div class="stat-val" id="detail-cost" style="color:var(--yellow)"></div></div>
+        <div class="stat-item"><div class="stat-label">COSTURI ÎNREGISTRATE</div><div class="stat-val" id="detail-cost" style="color:var(--orange)"></div><div style="font-size:10px;color:var(--muted);text-align:center;" id="detail-cost-ha"></div></div>
       </div>
       <div>
         <div class="section-header"><span class="section-title">LUCRĂRI PLANIFICATE</span><button class="btn btn-sm btn-yellow" onclick="openTaskFormForField()">+ Planifică</button></div>
@@ -2463,6 +2463,9 @@ function openDetail(id) {
   let totalCost = 0;
   if (d) d.treatments.filter(t => t.fieldId === id).forEach(t => totalCost += (Number(t.totalCost) || 0));
   document.getElementById('detail-cost').textContent = `${fmt(totalCost)} lei`;
+  const ha = Number(f.areaHectares)||0;
+  const costHaEl = document.getElementById('detail-cost-ha');
+  if (costHaEl) costHaEl.textContent = ha > 0 ? fmt(totalCost/ha) + ' lei/ha' : '';
 
   const picker = document.getElementById('detail-color-picker'); picker.innerHTML = '';
   COLORS.forEach(c => {
@@ -2554,16 +2557,14 @@ function renderFieldsView() {
           <strong style="font-size:14px;color:var(--text);font-family:var(--font-display)">${f.name}</strong>
           ${tasks > 0 ? `<span style="background:#fef3c7;color:#d97706;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;">${tasks} sarcini</span>` : ''}
         </div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <span style="font-size:11px;display:flex;align-items:center;gap:4px;">
-            <span style="width:8px;height:8px;background:${fc.color};border-radius:2px;display:inline-block;"></span>
-            <span style="color:var(--muted);font-weight:600">${fc.crop}</span>
-          </span>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <span style="font-size:11px;color:var(--muted);font-weight:600">${fc.crop}</span>
           <span style="font-size:11px;color:var(--blue);font-weight:700">${fmtN(f.areaHectares,2)} ha</span>
           ${cost > 0 ? `<span style="font-size:11px;color:var(--orange);font-weight:700">${fmt(cost)} lei</span>` : ''}
+          ${cost > 0 && Number(f.areaHectares) > 0 ? `<span style="font-size:10px;color:var(--muted);">${fmt(cost/Number(f.areaHectares))} lei/ha</span>` : ''}
         </div>
       </div>
-      <span style="color:var(--dim);font-size:18px;">›</span>`;
+      ${cost > 0 ? buildFieldMiniDonut(f.id) : '<span style="color:var(--dim);font-size:18px;">›</span>'}`;
     card.onmouseenter = () => card.style.background = 'var(--green-soft)';
     card.onmouseleave = () => card.style.background = 'var(--surface)';
     card.onclick = () => {
@@ -2635,41 +2636,109 @@ function renderTasksView() {
     return (a.dueDate||'9999').localeCompare(b.dueDate||'9999');
   });
   if (!tasks.length) { root.innerHTML = '<div class="no-data">Nicio lucrare planificata.</div>'; return; }
+
   tasks.forEach(t => {
     const fieldIds = t.fieldIds || (t.fieldId ? [t.fieldId] : []);
-    const fieldNames = fieldIds.map(id => { const f = state.fields.find(x => x.id === id); return f ? f.name : '—'; });
+    const doneFlds = t.doneFields || [];
     const isExpired = t.dueDate && t.dueDate < today && t.status !== 'Finalizat';
     const isToday = t.dueDate === today;
-    const priorityColor = t.priority === 'Urgent' ? 'var(--red)' : t.priority === 'Ridicat' ? 'var(--amber)' : 'var(--border)';
+    const priorityColor = t.priority === 'Urgent' ? 'var(--red)' : t.priority === 'Ridicat' ? 'var(--amber)' : 'var(--green)';
     const dateColor = isExpired ? 'var(--red)' : isToday ? 'var(--amber)' : 'var(--muted)';
+    const isDone = t.status === 'Finalizat';
+
+    // calcule suprafețe
+    const totalHa = fieldIds.reduce((s, id) => { const f = state.fields.find(x => x.id === id); return s + (Number(f&&f.areaHectares)||0); }, 0);
+    const doneHa = doneFlds.reduce((s, id) => { const f = state.fields.find(x => x.id === id); return s + (Number(f&&f.areaHectares)||0); }, 0);
+    const pct = totalHa > 0 ? Math.round(doneHa / totalHa * 100) : 0;
+
     const card = document.createElement('div');
     card.className = 'task-card';
-    const totalTaskHa = fieldIds.reduce(function(s,id){var f=state.fields.find(function(x){return x.id===id;});return s+(Number(f&&f.areaHectares)||0);},0);
-    card.style.borderLeftColor = priorityColor;
-    card.innerHTML =
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
-        '<div style="flex:1;min-width:0;">' +
-          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">' +
-            '<strong style="font-size:13px;font-family:var(--font-display);">' + (t.type||'Lucrare') + '</strong>' +
-            (t.priority !== 'Normal' ? '<span style="font-size:10px;font-weight:800;color:' + priorityColor + ';">' + t.priority + '</span>' : '') +
-            (t.status === 'Finalizat' ? '<span style="font-size:10px;background:#dcfce7;color:var(--green);padding:1px 6px;border-radius:10px;font-weight:700;">✓ Executat</span>' : '') +
-          '</div>' +
-          '<div style="font-size:11px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;">' +
-            '<span>📍 ' + (fieldNames.join(', ')||'—') + (totalTaskHa > 0 ? ' · <strong>' + fmtN(totalTaskHa,2) + ' ha</strong>' : '') + '</span>' +
-            (t.dueDate ? '<span style="color:' + dateColor + ';font-weight:700;">' + (isExpired?'⚠️ ':'') + '📅 ' + fmtDate(t.dueDate) + '</span>' : '') +
-          '</div>' +
-          (t.notes ? '<div style="font-size:11px;color:var(--dim);margin-top:3px;font-style:italic;">' + t.notes + '</div>' : '') +
-        '</div>' +
-        '<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">' +
-          (t.status !== 'Finalizat' ? '<button class="btn btn-sm btn-green" onclick="executeTask(\'' + t.id + '\')">▶ Execută</button>' : '') +
-          '<div style="display:flex;gap:4px;">' +
-            '<button class="btn btn-sm btn-gray" onclick="editTask(\'' + t.id + '\')">✎</button>' +
-            '<button class="btn btn-sm btn-red" onclick="deleteTask(\'' + t.id + '\')">🗑</button>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
+    card.style.borderLeftColor = isDone ? 'var(--green)' : priorityColor;
+    if (isDone) card.style.opacity = '0.75';
+
+    // header
+    let html = '<div style="margin-bottom:8px;">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
+    html += '<div style="flex:1;min-width:0;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap;">';
+    html += '<strong style="font-size:13px;font-family:var(--font-display);">' + (t.type||'Lucrare') + '</strong>';
+    if (t.priority !== 'Normal') html += '<span style="font-size:10px;font-weight:800;color:' + priorityColor + ';">' + t.priority + '</span>';
+    if (isDone) html += '<span style="font-size:10px;background:#dcfce7;color:var(--green);padding:1px 6px;border-radius:10px;font-weight:700;">✓ Finalizat</span>';
+    html += '</div>';
+    if (t.dueDate) html += '<div style="font-size:11px;color:' + dateColor + ';font-weight:600;margin-bottom:3px;">' + (isExpired?'⚠️ ':'') + '📅 ' + fmtDate(t.dueDate) + '</div>';
+    if (t.notes) html += '<div style="font-size:11px;color:var(--dim);font-style:italic;margin-bottom:4px;">' + t.notes + '</div>';
+    html += '</div>';
+    // butoane header
+    html += '<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">';
+    html += '<div style="display:flex;gap:4px;">';
+    html += '<button class="btn btn-sm btn-gray" onclick="editTask(\'' + t.id + '\')">✎</button>';
+    html += '<button class="btn btn-sm btn-red" onclick="deleteTask(\'' + t.id + '\')">🗑</button>';
+    html += '</div></div></div>';
+
+    // bara de progres
+    if (fieldIds.length > 0) {
+      html += '<div style="margin-bottom:6px;">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">';
+      html += '<span style="font-size:11px;color:var(--muted);">Progres</span>';
+      html += '<span style="font-size:11px;font-weight:700;color:' + (pct===100?'var(--green)':'var(--text)') + ';">' + fmtN(doneHa,2) + ' / ' + fmtN(totalHa,2) + ' ha · ' + pct + '%</span>';
+      html += '</div>';
+      html += '<div style="background:var(--border);border-radius:6px;height:8px;overflow:hidden;">';
+      html += '<div style="background:' + (pct===100?'var(--green)':'var(--blue)') + ';width:' + pct + '%;height:100%;border-radius:6px;transition:width .3s;"></div>';
+      html += '</div></div>';
+    }
+
+    // checklist parcele
+    html += '<div style="display:flex;flex-direction:column;gap:4px;">';
+    fieldIds.forEach(fid => {
+      const f = state.fields.find(x => x.id === fid);
+      if (!f) return;
+      const fc = fieldCrop(fid);
+      const done = doneFlds.includes(fid);
+      html += '<label style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:8px;cursor:pointer;background:' + (done?'#dcfce7':'var(--surface2)') + ';border:1px solid ' + (done?'#bbf7d0':'var(--border-light)') + ';transition:all .15s;" onclick="toggleFieldDone(\'' + t.id + '\',\'' + fid + '\')">';
+      html += '<input type="checkbox" ' + (done?'checked':'') + ' style="width:16px;height:16px;accent-color:var(--green);flex-shrink:0;" onclick="event.stopPropagation();toggleFieldDone(\'' + t.id + '\',\'' + fid + '\')">';
+      html += '<div style="flex:1;min-width:0;">';
+      html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">';
+      html += '<span style="font-size:12px;font-weight:' + (done?'400':'600') + ';color:' + (done?'var(--muted)':'var(--text)') + ';' + (done?'text-decoration:line-through;':'') + '">' + f.name + '</span>';
+      html += '<span style="font-size:10px;color:var(--muted);">' + fmtN(f.areaHectares,2) + ' ha</span>';
+      html += '<span style="font-size:10px;color:' + fc.color + ';font-weight:600;">' + fc.crop + '</span>';
+      html += '</div></div>';
+      if (done) html += '<span style="font-size:11px;color:var(--green);flex-shrink:0;">✓</span>';
+      html += '</label>';
+    });
+    html += '</div>';
+
+    // buton execută lucrare (doar dacă nu e complet finalizat)
+    if (!isDone && doneFlds.length < fieldIds.length) {
+      const remaining = fieldIds.filter(id => !doneFlds.includes(id));
+      html += '<div style="margin-top:8px;">';
+      html += '<button class="btn btn-sm btn-blue" style="width:100%;" onclick="executeTask(\'' + t.id + '\')">▶ Execută lucrare pe ' + (remaining.length > 1 ? remaining.length + ' parcele rămase' : '1 parcelă rămasă') + '</button>';
+      html += '</div>';
+    }
+
+    html += '</div>'; // închide primul div
+    card.innerHTML = html;
     root.appendChild(card);
   });
+}
+
+function toggleFieldDone(taskId, fieldId) {
+  const d = yd(); if (!d) return;
+  const t = d.tasks.find(x => x.id === taskId); if (!t) return;
+  if (!t.doneFields) t.doneFields = [];
+  const idx = t.doneFields.indexOf(fieldId);
+  if (idx >= 0) t.doneFields.splice(idx, 1);
+  else t.doneFields.push(fieldId);
+  // auto-finalizare dacă toate parcelele sunt bifate
+  const fieldIds = t.fieldIds || (t.fieldId ? [t.fieldId] : []);
+  if (t.doneFields.length === fieldIds.length && fieldIds.length > 0) {
+    t.status = 'Finalizat';
+    t.executedAt = new Date().toISOString().split('T')[0];
+  } else if (t.status === 'Finalizat' && t.doneFields.length < fieldIds.length) {
+    t.status = 'Planificat'; // reactivare dacă debifezi
+  }
+  save(); renderTaskFilters(); renderTasksView();
+  updateHeaderStats();
+  if (selectedFieldId) renderDetailTasks(selectedFieldId);
 }
 
 function openTaskFormForField() {
@@ -3485,150 +3554,218 @@ function renderCostsView() {
   const fields = activeFields();
   const harvests = getYearHarvests();
 
-  // ── CALCULE GLOBALE ───────────────────────────────────────────────────────────
   let totalCost = 0; treatments.forEach(t => totalCost += Number(t.totalCost)||0);
   let totalVenit = 0; harvests.forEach(h => totalVenit += h.tons * h.price);
   totalCost = Math.round(totalCost*100)/100;
   totalVenit = Math.round(totalVenit*100)/100;
   const profit = Math.round((totalVenit - totalCost)*100)/100;
-  const profitColor = profit >= 0 ? 'var(--green)' : 'var(--red)';
 
-  // ── HEADER PROFITABILITATE ────────────────────────────────────────────────────
   const costsEl = document.getElementById('costs-content');
+  const statsEl = document.getElementById('stats-content');
+
+  // ── HEADER KPI ───────────────────────────────────────────────────────────────
+  const totalHaFerma = fields.reduce((s,f)=>s+(Number(f.areaHectares)||0),0);
   costsEl.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
       <div class="cost-summary" style="text-align:center;">
         <div class="cost-total" style="color:var(--red);">${fmt(totalCost)}</div>
         <div class="cost-label">LEI COSTURI</div>
+        ${totalHaFerma>0?`<div style="font-size:10px;color:var(--muted);margin-top:2px;">${fmt(totalCost/totalHaFerma)} lei/ha</div>`:''}
       </div>
       <div class="cost-summary" style="text-align:center;">
         <div class="cost-total" style="color:var(--blue);">${fmt(totalVenit)}</div>
         <div class="cost-label">LEI VENITURI</div>
+        ${totalHaFerma>0?`<div style="font-size:10px;color:var(--muted);margin-top:2px;">${fmt(totalVenit/totalHaFerma)} lei/ha</div>`:''}
       </div>
       <div class="cost-summary" style="text-align:center;border-color:${profit>=0?'#bbf7d0':'#fecaca'};">
-        <div class="cost-total" style="color:${profitColor};">${profit>=0?'+':''}${fmt(profit)}</div>
+        <div class="cost-total" style="color:${profit>=0?'var(--green)':'var(--red)'};">${profit>=0?'+':''}${fmt(profit)}</div>
         <div class="cost-label">LEI PROFIT NET</div>
+        ${totalHaFerma>0?`<div style="font-size:10px;color:${profit>=0?'var(--green)':'var(--red)'};margin-top:2px;font-weight:700;">${profit>=0?'+':''}${fmt(profit/totalHaFerma)} lei/ha</div>`:''}
       </div>
     </div>
-    <div class="cost-label" style="text-align:center;margin-bottom:10px;">${activeYearName.toUpperCase()}</div>`;
+    <div class="cost-label" style="text-align:center;margin-bottom:16px;">${activeYearName.toUpperCase()}</div>`;
+
+  // ── DONUT FERMĂ ──────────────────────────────────────────────────────────────
+  // breakdown costuri pe categorii
+  const costByType = {};
+  treatments.forEach(t => {
+    const type = t.workType || 'Altele';
+    costByType[type] = (costByType[type]||0) + (Number(t.totalCost)||0);
+  });
+  const costEntries = Object.entries(costByType).sort((a,b) => b[1]-a[1]);
+  const PALETTE = ['#16a34a','#2563eb','#ea580c','#9333ea','#ca8a04','#dc2626','#0d9488','#6b21a8','#0369a1','#854d0e'];
+
+  costsEl.innerHTML += `<div class="cost-summary" style="margin-bottom:8px;">
+    <div class="cost-label" style="margin-bottom:12px;">📊 BREAKDOWN TOTAL FERMĂ</div>
+    <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;justify-content:center;">
+      ${buildDonut([
+        ...costEntries.map((([type, val],i) => ({label: type, value: val, color: PALETTE[i%PALETTE.length], sub: 'lei cost'}))),
+        {label: 'Recoltă', value: totalVenit, color: '#22c55e', sub: 'lei venit'}
+      ], 'Buget\nTotal', fmt(totalCost+totalVenit))}
+      <div style="flex:1;min-width:160px;">
+        ${costEntries.map(([type, val], i) => `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="width:10px;height:10px;background:${PALETTE[i%PALETTE.length]};border-radius:2px;display:inline-block;flex-shrink:0;"></span>
+              <span style="font-size:11px;">${type}</span>
+            </div>
+            <span style="font-size:11px;font-weight:700;color:var(--red);">${fmt(val)} lei</span>
+          </div>`).join('')}
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding-top:4px;border-top:1px solid var(--border-light);">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="width:10px;height:10px;background:#22c55e;border-radius:2px;display:inline-block;"></span>
+            <span style="font-size:11px;font-weight:700;">Recoltă</span>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:var(--green);">${fmt(totalVenit)} lei</span>
+        </div>
+        <div style="margin-top:8px;padding:8px;background:${profit>=0?'var(--green-soft)':'#fef2f2'};border-radius:8px;text-align:center;">
+          <div style="font-size:11px;color:var(--muted);">Profit net</div>
+          <div style="font-size:18px;font-weight:800;color:${profit>=0?'var(--green)':'var(--red)'};">${profit>=0?'+':''}${fmt(profit)} lei</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
 
   // ── PER PARCELĂ ────────────────────────────────────────────────────────────
+  costsEl.innerHTML += '<div class="cost-label" style="margin:16px 0 8px;">🌾 PROFITABILITATE PER PARCELĂ</div>';
+
   fields.forEach(f => {
     const fc = fieldCrop(f.id);
     const ha = Number(f.areaHectares)||0;
-    let cost = 0; treatments.filter(t=>t.fieldId===f.id).forEach(t=>cost+=Number(t.totalCost)||0);
-    const harv = harvests.find(h=>h.fieldId===f.id);
-    const venit = harv ? Math.round(harv.tons * harv.price * 100)/100 : 0;
-    const profField = Math.round((venit-cost)*100)/100;
-    const pc = profField>=0?'var(--green)':'var(--red)';
-    costsEl.innerHTML += `<div class="field-cost-card" style="flex-direction:column;align-items:stretch;gap:6px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div><strong>${f.name}</strong> <span style="font-size:11px;color:var(--muted);">${fc.crop} · ${fmtN(ha,2)} ha</span></div>
-        <strong style="color:${pc};font-size:14px;">${profField>=0?'+':''}${fmt(profField)} lei</strong>
+    const fTreats = treatments.filter(t => t.fieldId === f.id);
+    let fCost = 0; fTreats.forEach(t => fCost += Number(t.totalCost)||0);
+    const harv = harvests.find(h => h.fieldId === f.id);
+    const fVenit = harv ? Math.round(harv.tons * harv.price * 100)/100 : 0;
+    const fProfit = Math.round((fVenit - fCost)*100)/100;
+    const pc = fProfit >= 0 ? 'var(--green)' : 'var(--red)';
+
+    // breakdown costuri pe tip lucrare pentru această parcelă
+    const fCostByType = {};
+    fTreats.forEach(t => { const tp = t.workType||'Altele'; fCostByType[tp] = (fCostByType[tp]||0)+(Number(t.totalCost)||0); });
+    const fEntries = Object.entries(fCostByType).sort((a,b)=>b[1]-a[1]);
+    const segments = [
+      ...fEntries.map(([tp, val], i) => ({label: tp, value: val, color: PALETTE[i%PALETTE.length], sub:'lei'})),
+      ...(fVenit > 0 ? [{label:'Recoltă', value: fVenit, color:'#22c55e', sub:'lei'}] : [])
+    ];
+
+    const fieldCard = document.createElement('div');
+    fieldCard.className = 'cost-summary';
+    fieldCard.style.marginBottom = '8px';
+    fieldCard.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none'">
+        <div>
+          <strong style="font-family:var(--font-display);">${f.name}</strong>
+          <span style="font-size:11px;color:var(--muted);margin-left:8px;">${fc.crop} · ${fmtN(ha,2)} ha</span>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:14px;font-weight:800;color:${pc};">${fProfit>=0?'+':''}${fmt(fProfit)} lei</div>
+          <div style="font-size:10px;color:var(--muted);">↓${fmt(fCost)} / ↑${fmt(fVenit)}</div>
+          ${ha>0?`<div style="font-size:10px;color:${pc};font-weight:700;">${fProfit>=0?'+':''}${fmt(fProfit/ha)} lei/ha</div>`:''}
+        </div>
       </div>
-      <div style="display:flex;gap:8px;font-size:11px;">
-        <span style="color:var(--red);">↓ Costuri: ${fmt(cost)} lei${ha>0?' ('+fmt(cost/ha)+'/ha)':''}</span>
-        <span style="color:var(--blue);">↑ Venituri: ${fmt(venit)} lei${harv&&ha>0?' ('+fmtN(harv.tons/ha,2)+' t/ha)':''}</span>
-      </div>
-    </div>`;
+      <div>
+        ${segments.length > 0 ? `<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;">
+          ${buildDonut(segments, ha>0?fmtN(ha,2)+'\nha':'', '')}
+          <div style="flex:1;min-width:120px;">
+            ${fEntries.map(([tp,val],i)=>`<div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <div style="display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;background:${PALETTE[i%PALETTE.length]};border-radius:2px;display:inline-block;"></span><span style="font-size:10px;">${tp}</span></div>
+              <span style="font-size:10px;font-weight:700;color:var(--red);">${fmt(val)}</span></div>`).join('')}
+            ${fVenit>0?`<div style="display:flex;justify-content:space-between;margin-bottom:4px;padding-top:3px;border-top:1px solid var(--border-light);">
+              <div style="display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;background:#22c55e;border-radius:2px;display:inline-block;"></span><span style="font-size:10px;font-weight:700;">Recoltă</span></div>
+              <span style="font-size:10px;font-weight:700;color:var(--green);">${fmt(fVenit)}</span></div>`:''}
+          </div>
+        </div>` : '<div style="font-size:11px;color:var(--muted);text-align:center;padding:8px;">Fără date înregistrate</div>'}
+      </div>`;
+    costsEl.appendChild(fieldCard);
   });
 
-  // ── STATISTICI CULTURI ────────────────────────────────────────────────────────
-  const statsEl = document.getElementById('stats-content');
-  if (!fields.length) { statsEl.innerHTML = ''; return; }
-
-  // per cultură
-  const byCrop = {};
-  fields.forEach(f => {
-    const ha = Number(f.areaHectares)||0;
-    const fc = fieldCrop(f.id);
-    if (!byCrop[fc.crop]) byCrop[fc.crop] = {ha:0,parcele:0,color:fc.color,cost:0,venit:0};
-    byCrop[fc.crop].ha += ha;
-    byCrop[fc.crop].parcele++;
-    treatments.filter(t=>t.fieldId===f.id).forEach(t=>byCrop[fc.crop].cost+=Number(t.totalCost)||0);
-    const harv = harvests.find(h=>h.fieldId===f.id);
-    if (harv) byCrop[fc.crop].venit += harv.tons * harv.price;
-  });
-  const crops = Object.entries(byCrop).sort((a,b)=>b[1].ha-a[1].ha);
-  const totalHa = crops.reduce((s,[,d])=>s+d.ha,0);
-
-  // comparatie ani
-  let compHtml = '';
+  // ── COMPARAȚIE ANI ───────────────────────────────────────────────────────────
   if (state.years.length > 1) {
     const maxVal = Math.max(...state.years.map(y => {
-      let c=0, v=0;
-      const yd2 = state.yearData[y.id];
-      if (yd2) yd2.treatments.forEach(t=>c+=Number(t.totalCost)||0);
-      const yh = state.harvests[y.id]||[];
-      yh.forEach(h=>v+=h.tons*h.price);
+      let c=0,v=0;
+      const yd2=state.yearData[y.id]; if(yd2) yd2.treatments.forEach(t=>c+=Number(t.totalCost)||0);
+      const yh=state.harvests[y.id]||[]; yh.forEach(h=>v+=h.tons*h.price);
       return Math.max(c,v);
-    }),1);
-    compHtml = `<div class="cost-summary" style="margin-bottom:4px;">
-      <div class="cost-label" style="margin-bottom:10px;">📊 COMPARAȚIE ANI</div>
+    }), 1);
+    statsEl.innerHTML = `<div class="cost-summary" style="margin-top:8px;">
+      <div class="cost-label" style="margin-bottom:12px;">📈 COMPARAȚIE ANI</div>
       ${state.years.map(y => {
         let c=0,v=0;
         const yd2=state.yearData[y.id]; if(yd2) yd2.treatments.forEach(t=>c+=Number(t.totalCost)||0);
         const yh=state.harvests[y.id]||[]; yh.forEach(h=>v+=h.tons*h.price);
-        const prof=v-c; const isAct=y.id===state.activeYear;
-        return `<div style="margin-bottom:10px;">
-          <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
-            <span style="font-size:12px;font-weight:${isAct?'800':'700'};color:${isAct?'var(--green)':'var(--text)'};">${y.name}${isAct?' ▶':''}</span>
-            <span style="font-size:12px;font-weight:800;color:${prof>=0?'var(--green)':'var(--red)'};">${prof>=0?'+':''}${fmt(Math.round(prof))} lei</span>
+        const pr=v-c; const isAct=y.id===state.activeYear;
+        return `<div style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span style="font-size:12px;font-weight:${isAct?800:600};color:${isAct?'var(--green)':'var(--text)'};">${y.name}${isAct?' ▶':''}</span>
+            <span style="font-size:12px;font-weight:800;color:${pr>=0?'var(--green)':'var(--red)'};">${pr>=0?'+':''}${fmt(Math.round(pr))} lei</span>
           </div>
-          <div style="display:flex;gap:2px;height:8px;">
-            <div style="background:var(--red);width:${c/maxVal*100}%;border-radius:4px 0 0 4px;opacity:.8;" title="Costuri: ${fmt(Math.round(c))} lei"></div>
-            <div style="background:var(--blue);width:${v/maxVal*100}%;border-radius:0 4px 4px 0;opacity:.8;" title="Venituri: ${fmt(Math.round(v))} lei"></div>
+          <div style="display:flex;gap:2px;height:12px;border-radius:6px;overflow:hidden;">
+            <div style="background:#ef4444;width:${c/maxVal*100}%;transition:width .5s;" title="Costuri: ${fmt(Math.round(c))} lei"></div>
+            <div style="background:#22c55e;width:${v/maxVal*100}%;transition:width .5s;" title="Venituri: ${fmt(Math.round(v))} lei"></div>
           </div>
-          <div style="display:flex;gap:12px;font-size:10px;margin-top:2px;">
-            <span style="color:var(--red);">↓ ${fmt(Math.round(c))} lei</span>
-            <span style="color:var(--blue);">↑ ${fmt(Math.round(v))} lei</span>
+          <div style="display:flex;gap:12px;font-size:10px;margin-top:3px;">
+            <span style="color:var(--red);">↓ Costuri: ${fmt(Math.round(c))} lei</span>
+            <span style="color:var(--green);">↑ Venituri: ${fmt(Math.round(v))} lei</span>
           </div>
         </div>`;
       }).join('')}
     </div>`;
+  } else {
+    statsEl.innerHTML = '';
   }
+}
 
-  // donut suprafete
-  const cx=100,cy=100,R=80,r=48;
+function buildFieldMiniDonut(fieldId) {
+  const d = yd(); if (!d) return '<span style="color:var(--dim);font-size:18px;">›</span>';
+  const treats = d.treatments.filter(t => t.fieldId === fieldId);
+  if (!treats.length) return '<span style="color:var(--dim);font-size:18px;">›</span>';
+  const PALETTE = ['#16a34a','#2563eb','#ea580c','#9333ea','#ca8a04','#dc2626','#0d9488'];
+  const byType = {};
+  treats.forEach(t => { const tp = t.workType||'Altele'; byType[tp] = (byType[tp]||0)+(Number(t.totalCost)||0); });
+  const entries = Object.entries(byType);
+  const total = entries.reduce((s,[,v])=>s+v,0); if (!total) return '<span style="color:var(--dim);font-size:18px;">›</span>';
+  const cx=28,cy=28,R=22,r=12;
   let angle=-Math.PI/2, slices='';
-  crops.forEach(([crop,dd])=>{
-    const pct=totalHa>0?dd.ha/totalHa:0, sweep=pct*2*Math.PI-0.018;
+  entries.forEach(([tp,val],i)=>{
+    const pct=val/total, sweep=pct*2*Math.PI-0.02;
     if(sweep<=0)return;
-    const g=0.009;
+    const g=0.01;
     const x1=cx+R*Math.cos(angle+g),y1=cy+R*Math.sin(angle+g);
     const x2=cx+R*Math.cos(angle+g+sweep),y2=cy+R*Math.sin(angle+g+sweep);
     const ix1=cx+r*Math.cos(angle+g+sweep),iy1=cy+r*Math.sin(angle+g+sweep);
     const ix2=cx+r*Math.cos(angle+g),iy2=cy+r*Math.sin(angle+g);
-    slices+=`<path d="M${x1},${y1} A${R},${R} 0 ${sweep>Math.PI?1:0},1 ${x2},${y2} L${ix1},${iy1} A${r},${r} 0 ${sweep>Math.PI?1:0},0 ${ix2},${iy2} Z" fill="${dd.color}" opacity=".9" stroke="var(--surface)" stroke-width="1.5"/>`;
+    slices+=`<path d="M${x1},${y1} A${R},${R} 0 ${sweep>Math.PI?1:0},1 ${x2},${y2} L${ix1},${iy1} A${r},${r} 0 ${sweep>Math.PI?1:0},0 ${ix2},${iy2} Z" fill="${PALETTE[i%PALETTE.length]}" opacity=".9" stroke="var(--surface)" stroke-width="1"><title>${tp}: ${Math.round(pct*100)}%</title></path>`;
     angle+=pct*2*Math.PI;
   });
-  const donut=`<svg viewBox="0 0 200 200" style="width:160px;height:160px;flex-shrink:0">${slices}<text x="100" y="95" text-anchor="middle" font-family="var(--font-display)" font-size="13" font-weight="800" fill="var(--text)">${fmtN(totalHa,1)}</text><text x="100" y="110" text-anchor="middle" font-size="10" fill="var(--muted)">ha total</text></svg>`;
+  return `<svg viewBox="0 0 56 56" style="width:44px;height:44px;flex-shrink:0;">${slices}</svg>`;
+}
 
-  let legend='';
-  crops.forEach(([crop,dd])=>{
-    const pct=totalHa>0?dd.ha/totalHa*100:0;
-    const profCrop=Math.round((dd.venit-dd.cost)*100)/100;
-    legend+=`<div style="margin-bottom:10px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span style="width:11px;height:11px;background:${dd.color};border-radius:2px;display:inline-block;flex-shrink:0;"></span>
-          <strong style="font-size:12px;">${crop}</strong>
-          <span style="font-size:10px;color:var(--dim);">${dd.parcele} parc.</span>
-        </div>
-        <span style="font-size:11px;font-weight:800;color:${profCrop>=0?'var(--green)':'var(--red)'};">${profCrop>=0?'+':''}${fmt(profCrop)} lei</span>
-      </div>
-      <div style="background:var(--border);border-radius:4px;height:5px;overflow:hidden;"><div style="background:${dd.color};width:${pct}%;height:100%;border-radius:4px;opacity:.85;"></div></div>
-      <div style="display:flex;justify-content:space-between;margin-top:2px;font-size:10px;">
-        <span style="color:var(--muted);">${fmtN(dd.ha,2)} ha · ${fmtN(pct,1)}%</span>
-        <span style="color:var(--red);">↓${fmt(Math.round(dd.cost))} / <span style="color:var(--blue);">↑${fmt(Math.round(dd.venit))}</span></span>
-      </div>
-    </div>`;
+function buildDonut(segments, centerLabel, centerSub) {
+  const total = segments.reduce((s,x) => s+x.value, 0);
+  if (!total) return '<svg viewBox="0 0 120 120" style="width:120px;height:120px;"><circle cx="60" cy="60" r="45" fill="none" stroke="var(--border)" stroke-width="18"/><text x="60" y="65" text-anchor="middle" font-size="10" fill="var(--muted)">No data</text></svg>';
+  const cx=60, cy=60, R=45, r=26;
+  let angle = -Math.PI/2;
+  let slices = '';
+  segments.forEach(seg => {
+    if (!seg.value) return;
+    const pct = seg.value/total;
+    const sweep = pct*2*Math.PI - 0.02;
+    if (sweep <= 0) return;
+    const g = 0.01;
+    const x1=cx+R*Math.cos(angle+g), y1=cy+R*Math.sin(angle+g);
+    const x2=cx+R*Math.cos(angle+g+sweep), y2=cy+R*Math.sin(angle+g+sweep);
+    const ix1=cx+r*Math.cos(angle+g+sweep), iy1=cy+r*Math.sin(angle+g+sweep);
+    const ix2=cx+r*Math.cos(angle+g), iy2=cy+r*Math.sin(angle+g);
+    const large = sweep>Math.PI?1:0;
+    slices += `<path d="M${x1},${y1} A${R},${R} 0 ${large},1 ${x2},${y2} L${ix1},${iy1} A${r},${r} 0 ${large},0 ${ix2},${iy2} Z" fill="${seg.color}" opacity=".9" stroke="var(--surface)" stroke-width="1.5">
+      <title>${seg.label}: ${fmt(seg.value)} lei (${Math.round(pct*100)}%)</title></path>`;
+    angle += pct*2*Math.PI;
   });
-
-  statsEl.innerHTML = compHtml + `<div class="cost-summary" style="margin-top:4px;">
-    <div class="cost-label" style="margin-bottom:10px;">🌱 STRUCTURA CULTURILOR</div>
-    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">${donut}<div style="flex:1;min-width:160px;">${legend}</div></div>
-  </div>`;
+  const lines = centerLabel.split('\n');
+  const labelSvg = lines.map((l,i) =>
+    `<text x="60" y="${58+(i-Math.floor(lines.length/2))*13}" text-anchor="middle" font-family="var(--font-display)" font-size="${i===0&&lines.length>1?9:10}" font-weight="700" fill="var(--text)">${l}</text>`
+  ).join('');
+  return `<svg viewBox="0 0 120 120" style="width:130px;height:130px;flex-shrink:0;">${slices}${labelSvg}</svg>`;
 }
 
 function renderYearSelector() {
