@@ -51,8 +51,8 @@
 /* ── WEATHER ──────────────────────────────────────────────────────── */
 #weather-widget:hover{background:rgba(255,255,255,0.15);}
 #weather-panel{
-  position:absolute;top:56px;right:140px;z-index:600;
-  width:320px;background:var(--surface);border:1px solid var(--border-light);
+  position:fixed;top:52px;right:10px;z-index:1000;
+  width:340px;background:var(--surface);border:1px solid var(--border-light);
   border-radius:var(--radius);box-shadow:var(--shadow-md);
   display:none;overflow:hidden;
 }
@@ -646,10 +646,13 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
       <strong style="font-size:13px;font-family:var(--font-display);">🌦 Prognoză meteo</strong>
       <span id="weather-location" style="font-size:11px;color:var(--muted);"></span>
     </div>
-    <div id="weather-warnings"></div>
-    <div id="weather-today" style="padding:12px 14px;border-bottom:1px solid var(--border-light);"></div>
-    <div id="weather-forecast" style="padding:6px 0;max-height:260px;overflow-y:auto;"></div>
-    <div style="padding:6px 14px;font-size:10px;color:var(--dim);text-align:right;">Open-Meteo · actualizat <span id="weather-updated"></span></div>
+    <div style="overflow-y:auto;max-height:calc(100vh - 100px);">
+      <div id="weather-warnings"></div>
+      <div id="weather-today" style="padding:12px 14px;border-bottom:1px solid var(--border-light);"></div>
+      <div id="weather-spray"></div>
+      <div id="weather-forecast" style="padding:6px 0;"></div>
+    </div>
+    <div style="padding:6px 14px;font-size:10px;color:var(--dim);text-align:right;border-top:1px solid var(--border-light);">Open-Meteo · actualizat <span id="weather-updated"></span></div>
   </div>
 
   <div id="nav">
@@ -4022,19 +4025,20 @@ let weatherData = null;
 let weatherLat = 47.785, weatherLon = 26.435; // default Botoșani
 
 async function loadWeather() {
-  // folosim centrul parcelelor dacă există, altfel default
-  if (state.fields.length > 0 && state.fields[0].geometry) {
-    try {
+  // folosim centrul parcelelor dacă există, altfel default Botoșani
+  try {
+    if (state.fields.length > 0 && state.fields[0].geometry) {
       const coords = extractCentroid(state.fields[0].geometry);
-      if (coords) { weatherLat = coords[1]; weatherLon = coords[0]; }
-    } catch(e) {}
-  }
+      if (coords && coords[0] && coords[1]) { weatherLat = coords[1]; weatherLon = coords[0]; }
+    }
+  } catch(e) {}
 
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${weatherLat}&longitude=${weatherLon}` +
       `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m,weather_code` +
+      `&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation_probability,weather_code` +
       `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max` +
-      `&timezone=Europe%2FBucharest&forecast_days=15`;
+      `&timezone=Europe%2FBucharest&forecast_days=15&forecast_hours=48`;
     const resp = await fetch(url);
     weatherData = await resp.json();
     renderWeatherWidget();
@@ -4046,12 +4050,19 @@ async function loadWeather() {
 
 function extractCentroid(geojson) {
   try {
-    const coords = geojson.type === 'Feature' ? geojson.geometry.coordinates :
-                   geojson.type === 'FeatureCollection' ? geojson.features[0].geometry.coordinates :
-                   geojson.coordinates;
-    const flat = coords[0][0];
-    if (Array.isArray(flat[0])) return flat[0][0];
-    return flat[0];
+    let coords;
+    if (geojson.type === 'Feature') coords = geojson.geometry.coordinates;
+    else if (geojson.type === 'FeatureCollection') coords = geojson.features[0].geometry.coordinates;
+    else coords = geojson.coordinates;
+    // Polygon: coords[0] = ring, coords[0][0] = first point [lng, lat]
+    const ring = coords[0];
+    if (!ring) return null;
+    // calculate centroid of ring
+    let lng = 0, lat = 0, n = 0;
+    const pts = Array.isArray(ring[0]) ? ring : ring[0];
+    pts.forEach(p => { if (Array.isArray(p) && p.length >= 2) { lng += p[0]; lat += p[1]; n++; } });
+    if (n === 0) return null;
+    return [lng/n, lat/n];
   } catch(e) { return null; }
 }
 
@@ -4110,7 +4121,11 @@ function renderWeatherPanel() {
   const warnEl = document.getElementById('weather-warnings');
   warnEl.innerHTML = warnings.map(w => `<div class="wx-warn">${w}</div>`).join('');
 
-  // prognoză 7 zile
+  // spray index pe 48h — în elementul dedicat
+  const sprayEl = document.getElementById('weather-spray');
+  if (sprayEl) sprayEl.innerHTML = renderSpraySection(weatherData);
+
+  // prognoză 15 zile
   const forecastEl = document.getElementById('weather-forecast');
   const zileSapt = ['Dum','Lun','Mar','Mie','Joi','Vin','Sâm'];
   forecastEl.innerHTML = d.time.map((date, i) => {
@@ -4134,14 +4149,85 @@ function renderWeatherPanel() {
   }).join('');
 }
 
+function calcSprayIndex(temp, humidity, windKmh, precipProb, weatherCode) {
+  // Condiții ideale pentru aplicare tratamente:
+  // Temp: 10-25°C, Umiditate: 40-70%, Vânt: <15 km/h, fără precipitații
+  let score = 100;
+  let issues = [];
+
+  // Vânt — cel mai critic factor
+  if (windKmh > 25) { score -= 50; issues.push('vânt prea puternic'); }
+  else if (windKmh > 15) { score -= 25; issues.push('vânt ridicat'); }
+  else if (windKmh < 2) { score -= 10; issues.push('vânt prea slab (drift vertical)'); }
+
+  // Precipitații
+  if (precipProb > 60) { score -= 40; issues.push('risc ploaie ridicat'); }
+  else if (precipProb > 30) { score -= 15; issues.push('risc ploaie moderat'); }
+
+  // Cod meteo — ploaie/furtună
+  if ([61,63,65,80,81,82,95,96,99].includes(weatherCode)) { score -= 50; issues.push('precipitații active'); }
+
+  // Temperatură
+  if (temp > 30) { score -= 20; issues.push('prea cald (evaporare rapidă)'); }
+  else if (temp < 8) { score -= 20; issues.push('prea frig (absorbție slabă)'); }
+  else if (temp >= 15 && temp <= 25) score += 5;
+
+  // Umiditate
+  if (humidity > 85) { score -= 10; issues.push('umiditate prea ridicată'); }
+  else if (humidity < 35) { score -= 15; issues.push('umiditate prea scăzută'); }
+  else if (humidity >= 50 && humidity <= 70) score += 5;
+
+  score = Math.max(0, Math.min(100, score));
+  const label = score >= 75 ? 'Optim' : score >= 50 ? 'Acceptabil' : score >= 25 ? 'Nerecomandat' : 'Interzis';
+  const color = score >= 75 ? 'var(--green)' : score >= 50 ? 'var(--amber)' : score >= 25 ? 'var(--orange)' : 'var(--red)';
+  return { score, label, color, issues };
+}
+
+function renderSpraySection(data) {
+  var h = data.hourly;
+  if (!h || !h.time) return '';
+  var now = new Date();
+  var cutoff = new Date(Date.now() + 48*3600000);
+  var next48h = [];
+  for (var i = 0; i < h.time.length; i++) {
+    var t = new Date(h.time[i]);
+    if (t >= now && t <= cutoff) {
+      next48h.push({time:t,hour:t.getHours(),temp:h.temperature_2m[i],humidity:h.relative_humidity_2m[i],wind:h.wind_speed_10m[i],precipProb:h.precipitation_probability[i],code:h.weather_code[i]});
+    }
+  }
+  var byDay = {};
+  next48h.forEach(function(x) {
+    var key = x.time.toLocaleDateString('ro-RO',{weekday:'short',day:'numeric',month:'short'});
+    if (!byDay[key]) byDay[key] = [];
+    byDay[key].push(x);
+  });
+  var out = '<div style="padding:10px 14px;border-bottom:1px solid var(--border-light);"><div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Fereastra aplicare tratamente (48h)</div>';
+  Object.keys(byDay).forEach(function(day) {
+    out += '<div style="font-size:11px;font-weight:700;color:var(--text);margin:6px 0 4px;">' + day + '</div>';
+    out += '<div style="display:flex;flex-wrap:wrap;gap:3px;">';
+    byDay[day].forEach(function(x) {
+      var sp = calcSprayIndex(x.temp,x.humidity,x.wind,x.precipProb,x.code);
+      var bg = sp.score>=75?'#dcfce7':sp.score>=50?'#fef9c3':sp.score>=25?'#ffedd5':'#fee2e2';
+      var tc = sp.score>=75?'#166534':sp.score>=50?'#854d0e':sp.score>=25?'#9a3412':'#991b1b';
+      var tt = x.hour+':00 '+sp.label+' '+x.temp+'C '+Math.round(x.wind)+'km/h'+(sp.issues.length?' | '+sp.issues.join(', '):'');
+      out += '<div title="'+tt+'" style="background:'+bg+';color:'+tc+';border-radius:6px;padding:3px 5px;font-size:10px;font-weight:700;cursor:help;text-align:center;min-width:32px;">'+x.hour+':00<br><span style="font-size:9px;">'+sp.label+'</span></div>';
+    });
+    out += '</div>';
+  });
+  out += '</div>';
+  return out;
+}
+
 function toggleWeatherPanel() {
   const panel = document.getElementById('weather-panel');
+  if (!panel) return;
+  const isOpen = panel.classList.contains('open');
   panel.classList.toggle('open');
-  if (panel.classList.contains('open') && !weatherData) loadWeather();
+  if (!isOpen && !weatherData) loadWeather();
 }
 
 // închide panoul meteo la click în afară
-document.addEventListener('click', e => {
+document.addEventListener('click', function(e) {
   const panel = document.getElementById('weather-panel');
   const widget = document.getElementById('weather-widget');
   if (panel && widget && !panel.contains(e.target) && !widget.contains(e.target)) {
