@@ -915,11 +915,16 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
       </div>
 
       <div class="culture-manager-box">
-        <span style="font-size:11px;font-weight:800;color:var(--orange);letter-spacing:.06em;display:block;margin-bottom:8px;">⛽ PREȚ MOTORINĂ</span>
-        <div style="display:flex;gap:10px;align-items:center;">
+        <span style="font-size:11px;font-weight:800;color:var(--orange);letter-spacing:.06em;display:block;margin-bottom:8px;">⛽ MOTORINĂ</span>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;">
           <input type="number" class="field-input" id="diesel-price-input" step="0.01" style="flex:1;background:#fff;" placeholder="lei/litru"/>
           <span style="font-size:12px;color:var(--muted);white-space:nowrap;">lei / litru</span>
           <button class="btn btn-orange" onclick="saveDieselPrice()">Salvează</button>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input type="number" class="field-input" id="diesel-norm-input" step="0.1" style="flex:1;background:#fff;" placeholder="ex: 12"/>
+          <span style="font-size:12px;color:var(--muted);white-space:nowrap;">L / ha normă</span>
+          <button class="btn btn-orange" onclick="saveDieselNorm()">Salvează</button>
         </div>
         <div style="font-size:11px;color:var(--muted);margin-top:6px;" id="diesel-price-note"></div>
       </div>
@@ -1296,6 +1301,9 @@ let DEFAULT_CULTURES = {
 const DEFAULT_PRODUCT_CATEGORIES = ['Erbicid', 'Fungicid', 'Insecticid', 'Îngrășământ', 'Regulator', 'Sămânță', 'Combustibil', 'Altele'];
 const DEFAULT_PRODUCT_UNITS = ['L', 'kg', 'g', 'ml', 't', 'buc'];
 const DEFAULT_DIESEL_PRICE = 7.5; // lei/litru implicit
+function wtName(wt) { return typeof wt === 'object' ? wt.name : wt; }
+function wtNorm(wt) { return typeof wt === 'object' ? (wt.norm || 0) : 0; }
+function wtFind(name) { return state.workTypes.find(function(w){ return wtName(w) === name; }); }
 const DEFAULT_WORK_TYPES = ['Arătură', 'Discuit', 'Cultivat', 'Semănat', 'Fertilizare', 'Erbicidare', 'Fungicidare', 'Insecticidare', 'Irigare', 'Recoltare', 'Balotat', 'Transport', 'Altele'];
 
 let state = {
@@ -1307,6 +1315,7 @@ let state = {
   productUnits: [...DEFAULT_PRODUCT_UNITS],
   workTypes: [...DEFAULT_WORK_TYPES],
   dieselPrice: DEFAULT_DIESEL_PRICE,
+  dieselNorm: 0,
   farmer: {},
   harvests: {},
   years: [],
@@ -1388,8 +1397,11 @@ function applyRawState(raw) {
   if (!state.productCategories || !state.productCategories.length) state.productCategories = [...DEFAULT_PRODUCT_CATEGORIES];
   if (!state.productUnits || !state.productUnits.length) state.productUnits = [...DEFAULT_PRODUCT_UNITS];
   if (!state.workTypes || !state.workTypes.length) state.workTypes = [...DEFAULT_WORK_TYPES];
+  // migrare workTypes strings -> objects
+  state.workTypes = state.workTypes.map(function(w){ return typeof w === 'string' ? {name:w,norm:0} : w; });
   if (!state.machinery) state.machinery = [];
   if (!state.dieselPrice) state.dieselPrice = DEFAULT_DIESEL_PRICE;
+  if (!state.dieselNorm) state.dieselNorm = 0;
   if (!state.farmer) state.farmer = {};
   // round existing areaHectares to 2 decimals
   state.fields.forEach(function(f){if(f.areaHectares) f.areaHectares=Math.round(f.areaHectares*100)/100;});
@@ -1585,6 +1597,15 @@ function loadFarmerProfile() {
   });
 }
 
+function saveDieselNorm() {
+  const val = Number(document.getElementById('diesel-norm-input').value);
+  if (val < 0) return;
+  state.dieselNorm = val;
+  save();
+  const note = document.getElementById('diesel-price-note');
+  if (note) { note.textContent = val > 0 ? 'Norma salvata: ' + val + ' L/ha' : 'Norma dezactivata'; setTimeout(function(){note.textContent='';},3000); }
+}
+
 function saveDieselPrice() {
   if (!val || val <= 0) return;
   state.dieselPrice = val;
@@ -1714,6 +1735,8 @@ function switchView(view) {
     // init diesel price
     const dpInput = document.getElementById('diesel-price-input');
     if (dpInput) dpInput.value = state.dieselPrice || DEFAULT_DIESEL_PRICE;
+    const dnInput = document.getElementById('diesel-norm-input');
+    if (dnInput) dnInput.value = state.dieselNorm || '';
     loadFarmerProfile();
     const br = document.getElementById('btn-reset-settings'); if(br) br.style.display = state.fields.length ? 'block' : 'none'; }
   }
@@ -1951,59 +1974,79 @@ function renderWorkTypesPanel() {
   const container = document.getElementById('worktype-list'); if (!container) return;
   container.innerHTML = '';
   state.workTypes.forEach(wt => {
+    const name = wtName(wt);
+    const norm = wtNorm(wt);
     const row = document.createElement('div');
     row.className = 'culture-item-row';
     row.innerHTML = `
-      <div style="display:flex;align-items:center;gap:8px;">
+      <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
         <span style="color:var(--teal)">■</span>
-        <strong style="font-size:13px;">${wt}</strong>
+        <strong style="font-size:13px;">${name}</strong>
+        ${norm > 0 ? `<span style="font-size:10px;color:var(--orange);background:#fff7ed;padding:1px 6px;border-radius:8px;border:1px solid var(--orange);">⛽ ${norm} L/ha</span>` : ''}
       </div>
-      <div style="display:flex;gap:4px;">
-        <button class="btn btn-sm btn-gray" onclick="startEditWorkType('${wt.replace(/'/g,"\\'")}')">✎</button>
-        <button class="btn btn-sm btn-red" onclick="deleteWorkType('${wt.replace(/'/g,"\\'")}')">Șterge</button>
+      <div style="display:flex;gap:4px;flex-shrink:0;">
+        <button class="btn btn-sm btn-gray" onclick="startEditWorkType('${name.replace(/'/g,"\\'")}')">✎</button>
+        <button class="btn btn-sm btn-red" onclick="deleteWorkType('${name.replace(/'/g,"\\'")}')">Șterge</button>
       </div>`;
     container.appendChild(row);
   });
 }
+
 function addWorkType() {
   const input = document.getElementById('new-worktype-name');
-  const name = input.value.trim(); if (!name || state.workTypes.includes(name)) return;
-  state.workTypes.push(name); save(); input.value = '';
+  const name = input.value.trim();
+  if (!name || state.workTypes.find(w => wtName(w) === name)) return;
+  state.workTypes.push({name, norm: 0});
+  save(); input.value = '';
   renderWorkTypesPanel(); populateWorkTypeSelect();
 }
+
 function deleteWorkType(wt) {
   if (!confirm(`Ștergi tipul "${wt}"?`)) return;
-  state.workTypes = state.workTypes.filter(w => w !== wt);
+  state.workTypes = state.workTypes.filter(w => wtName(w) !== wt);
   save(); renderWorkTypesPanel(); populateWorkTypeSelect();
 }
+
 function startEditWorkType(wt) {
   const container = document.getElementById('worktype-list'); if (!container) return;
+  const existing = wtFind(wt);
+  const norm = existing ? wtNorm(existing) : 0;
   container.innerHTML = '';
   state.workTypes.forEach(w => {
+    const wn = wtName(w);
     const row = document.createElement('div'); row.className = 'culture-item-row';
-    if (w === wt) {
+    if (wn === wt) {
       row.innerHTML = `
-        <input type="text" class="field-input" id="edit-worktype-name" value="${w}" style="flex:1;min-width:0;background:#fff;font-size:13px;"/>
-        <div style="display:flex;gap:4px;">
-          <button class="btn btn-sm btn-green" onclick="saveEditWorkType('${w.replace(/'/g,"\\'")}')">✓</button>
+        <div style="display:flex;gap:6px;flex:1;min-width:0;align-items:center;">
+          <input type="text" class="field-input" id="edit-worktype-name" value="${wn}" style="flex:2;min-width:0;background:#fff;font-size:13px;"/>
+          <input type="number" class="field-input" id="edit-worktype-norm" value="${norm||''}" step="0.1" placeholder="L/ha" style="flex:1;min-width:60px;background:#fff;" title="Normă motorină L/ha"/>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+          <button class="btn btn-sm btn-green" onclick="saveEditWorkType('${wn.replace(/'/g,"\\'")}')">✓</button>
           <button class="btn btn-sm btn-gray" onclick="renderWorkTypesPanel()">✕</button>
         </div>`;
     } else {
+      const nn = wtNorm(w);
       row.innerHTML = `
-        <div style="display:flex;align-items:center;gap:8px;"><span style="color:var(--teal)">■</span><strong>${w}</strong></div>
+        <div style="display:flex;align-items:center;gap:8px;flex:1;">
+          <span style="color:var(--teal)">■</span><strong>${wn}</strong>
+          ${nn > 0 ? `<span style="font-size:10px;color:var(--orange);">⛽${nn}L/ha</span>` : ''}
+        </div>
         <div style="display:flex;gap:4px;">
-          <button class="btn btn-sm btn-gray" onclick="startEditWorkType('${w.replace(/'/g,"\\'")}')">✎</button>
-          <button class="btn btn-sm btn-red" onclick="deleteWorkType('${w.replace(/'/g,"\\'")}')">Șterge</button>
+          <button class="btn btn-sm btn-gray" onclick="startEditWorkType('${wn.replace(/'/g,"\\'")}')">✎</button>
+          <button class="btn btn-sm btn-red" onclick="deleteWorkType('${wn.replace(/'/g,"\\'")}')">Șterge</button>
         </div>`;
     }
     container.appendChild(row);
   });
   document.getElementById('edit-worktype-name')?.focus();
 }
+
 function saveEditWorkType(oldWt) {
   const newName = document.getElementById('edit-worktype-name').value.trim(); if (!newName) return;
-  if (newName !== oldWt && state.workTypes.includes(newName)) { alert('Există deja.'); return; }
-  state.workTypes = state.workTypes.map(w => w === oldWt ? newName : w);
+  const newNorm = Number(document.getElementById('edit-worktype-norm').value) || 0;
+  if (newName !== oldWt && state.workTypes.find(w => wtName(w) === newName)) { alert('Există deja.'); return; }
+  state.workTypes = state.workTypes.map(w => wtName(w) === oldWt ? {name: newName, norm: newNorm} : w);
   save(); renderWorkTypesPanel(); populateWorkTypeSelect();
 }
 // mapare tip lucrare → categorii produse relevante
@@ -2027,7 +2070,7 @@ const WORK_TYPE_CATEGORIES = {
 
 function getProductsForWorkType(workType) {
   if (!workType) return state.products;
-  const wt = workType.toLowerCase()
+  const wt = wtName(workType).toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // strip diacritice pentru comparare
   
   // caută match în mapare (și fără diacritice)
@@ -2055,8 +2098,8 @@ function filterSubstancesByWorkType() {
     products = state.products;
   } else {
     const allMatched = new Set();
-    selectedWorkTypes.forEach(wt => {
-      getProductsForWorkType(wt).forEach(p => allMatched.add(p));
+    selectedWorkTypes.forEach(function(wt) {
+      getProductsForWorkType(wt).forEach(function(p){ allMatched.add(p); });
     });
     products = allMatched.size > 0 ? [...allMatched] : state.products;
   }
@@ -2093,37 +2136,57 @@ let selectedWorkTypes = new Set();
 function populateWorkTypeSelect() {
   const container = document.getElementById('treat-work-type-chips'); if (!container) return;
   container.innerHTML = '';
-  state.workTypes.forEach(w => {
+  state.workTypes.forEach(wt => {
+    const name = wtName(wt);
+    const norm = wtNorm(wt);
     const chip = document.createElement('button');
     chip.type = 'button';
     chip.style.cssText = 'padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);transition:all .15s;white-space:nowrap;line-height:1.4;';
-    chip.textContent = w;
-    chip.dataset.wt = w;
+    chip.textContent = name + (norm > 0 ? ' ⛽' : '');
+    chip.title = norm > 0 ? name + ' — normă ' + norm + ' L/ha' : name;
+    chip.dataset.wt = name;
     chip.onclick = () => {
-      if (selectedWorkTypes.has(w)) {
-        selectedWorkTypes.delete(w);
+      if (selectedWorkTypes.has(name)) {
+        selectedWorkTypes.delete(name);
         chip.style.background = 'var(--surface)';
         chip.style.color = 'var(--muted)';
         chip.style.borderColor = 'var(--border)';
       } else {
-        selectedWorkTypes.add(w);
+        selectedWorkTypes.add(name);
         chip.style.background = 'var(--green-soft)';
         chip.style.color = 'var(--green)';
         chip.style.borderColor = 'var(--green)';
       }
-      // update hidden input cu prima valoare (pentru compatibilitate)
       const hidden = document.getElementById('treat-work-type');
       if (hidden) hidden.value = [...selectedWorkTypes].join(', ');
+      // pre-completăm norma motorină din primul tip selectat care are normă
+      applyFuelNormFromWorkTypes();
       filterSubstancesByWorkType();
     };
     container.appendChild(chip);
   });
 }
 
+function applyFuelNormFromWorkTypes() {
+  const fuelInput = document.getElementById('treat-fuel-liters');
+  if (!fuelInput || fuelInput.dataset.manual) return;
+  // găsim prima normă definită din tipurile selectate
+  let norm = 0;
+  selectedWorkTypes.forEach(name => {
+    if (norm > 0) return;
+    const wt = wtFind(name);
+    if (wt && wtNorm(wt) > 0) norm = wtNorm(wt);
+  });
+  // fallback la norma globală
+  if (norm === 0 && state.dieselNorm > 0) norm = state.dieselNorm;
+  if (norm > 0) fuelInput.value = norm;
+  updateTreatCalc();
+}
+
 function setWorkTypeChips(types) {
   // types = string sau array de tipuri de selectat
   selectedWorkTypes.clear();
-  const arr = Array.isArray(types) ? types : (types ? [types] : []);
+  const arr = Array.isArray(types) ? types : (types ? types.split(',').map(function(s){return s.trim();}).filter(Boolean) : []);
   arr.forEach(t => { if (t) t.split(',').forEach(s => { const st = s.trim(); if (st) selectedWorkTypes.add(st); }); });
   // actualizăm vizual chips-urile
   const container = document.getElementById('treat-work-type-chips'); if (!container) return;
@@ -3596,7 +3659,7 @@ function editTreatmentGroup(groupId) {
   // populăm selectele
   const wt = document.getElementById('gep-work-type');
   wt.innerHTML = '<option value="">— Tip lucrare —</option>';
-  state.workTypes.forEach(w => wt.innerHTML += `<option value="${w}">${w}</option>`);
+  state.workTypes.forEach(function(w){ var n=wtName(w); wt.innerHTML += '<option value="'+n+'">'+n+'</option>'; });
   wt.value = first.workType || '';
 
   document.getElementById('gep-date').value = first.date || '';
@@ -4445,7 +4508,7 @@ function openTreatmentForm() {
   // nu adăugăm rând automat - utilizatorul adaugă manual dacă e necesar
   const areaInput = document.getElementById('treat-total-area');
   if (areaInput) { areaInput.value = ''; delete areaInput.dataset.manual; }
-  document.getElementById('treat-fuel-liters').value = '';
+  document.getElementById('treat-fuel-liters').value = state.dieselNorm > 0 ? state.dieselNorm : '';
   document.getElementById('treat-fuel-price') && (document.getElementById('treat-fuel-price').value = state.dieselPrice || DEFAULT_DIESEL_PRICE);
   document.getElementById('treat-notes').value = '';
   document.getElementById('treat-date').value = new Date().toISOString().split('T')[0];
