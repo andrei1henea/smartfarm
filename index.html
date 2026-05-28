@@ -1589,6 +1589,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function initMap() {
+  if (map) { map.remove(); map = null; } // previne "already initialized"
   map = L.map('map', { attributionControl: false, maxZoom: 21 }).setView([47.785, 26.435], 13);
 
   // Definiție straturi de bază
