@@ -47,7 +47,111 @@
   --shadow:0 1px 3px rgba(0,0,0,0.08),0 4px 12px rgba(0,0,0,0.05);
   --shadow-md:0 4px 16px rgba(0,0,0,0.10),0 1px 4px rgba(0,0,0,0.06);
 }
+
+/* ── DARK MODE ────────────────────────────────────────────────────── */
+[data-theme="dark"]{
+  --bg:#0f172a;
+  --surface:#1e293b;
+  --surface2:#0f172a;
+  --surface3:#334155;
+  --border:#334155;
+  --border-light:#1e293b;
+  --green:#22c55e;
+  --green-light:#16a34a;
+  --green-soft:#052e16;
+  --lime:#a3e635;
+  --amber:#fbbf24;
+  --blue:#60a5fa;
+  --red:#f87171;
+  --purple:#c084fc;
+  --orange:#fb923c;
+  --teal:#2dd4bf;
+  --text:#f1f5f9;
+  --text2:#cbd5e1;
+  --muted:#94a3b8;
+  --dim:#475569;
+  --shadow:0 1px 3px rgba(0,0,0,0.3),0 4px 12px rgba(0,0,0,0.2);
+  --shadow-md:0 4px 16px rgba(0,0,0,0.4),0 1px 4px rgba(0,0,0,0.3);
+}
+[data-theme="dark"] body{background:#0f172a;color:#f1f5f9;}
+[data-theme="dark"] #app{background:#0f172a;}
+[data-theme="dark"] #header{background:#1e293b;box-shadow:0 2px 8px rgba(0,0,0,0.4);}
+[data-theme="dark"] #nav{background:#1e293b;border-bottom:1px solid #334155;}
+[data-theme="dark"] .nav-btn{color:#94a3b8;}
+[data-theme="dark"] .nav-btn.active{background:#0f172a;color:#22c55e;border-color:#22c55e;}
+[data-theme="dark"] .modal-overlay{background:rgba(0,0,0,0.7);}
+[data-theme="dark"] .modal-box{background:#1e293b;border:1px solid #334155;}
+[data-theme="dark"] .modal-header{border-bottom:1px solid #334155;}
+[data-theme="dark"] .field-input{background:#0f172a;color:#f1f5f9;border-color:#334155;}
+[data-theme="dark"] .field-input:focus{border-color:#22c55e;}
+[data-theme="dark"] .btn{background:#1e293b;border-color:#334155;color:#f1f5f9;}
+[data-theme="dark"] .btn-green{background:#052e16;border-color:#22c55e;color:#22c55e;}
+[data-theme="dark"] .btn-blue{background:#1e3a5f;border-color:#60a5fa;color:#60a5fa;}
+[data-theme="dark"] .btn-red{background:#450a0a;border-color:#f87171;color:#f87171;}
+[data-theme="dark"] .btn-gray{background:#1e293b;border-color:#475569;color:#94a3b8;}
+[data-theme="dark"] .filter-chip{background:#1e293b;border-color:#334155;color:#94a3b8;}
+[data-theme="dark"] .filter-chip.active{background:#052e16;color:#22c55e;border-color:#22c55e;}
+[data-theme="dark"] .treat-card{background:#1e293b;border-color:#334155;}
+[data-theme="dark"] .prod-card{background:#1e293b;border-color:#334155;}
+[data-theme="dark"] .task-card{background:#1e293b;border-color:#334155;}
+[data-theme="dark"] .cost-summary{background:#1e293b;border-color:#334155;}
+[data-theme="dark"] .culture-manager-box{background:#1e293b;border-color:#334155;}
+[data-theme="dark"] .culture-item-row{border-bottom-color:#334155;}
+[data-theme="dark"] #field-detail{background:#0f172a;}
+[data-theme="dark"] .section-header{border-bottom-color:#334155;}
+[data-theme="dark"] #multiselect-bar{background:#1e293b;border-color:#334155;}
+[data-theme="dark"] #sync-indicator{background:#1e293b;border-color:#334155;color:#f1f5f9;}
+[data-theme="dark"] .auth-box{background:#1e293b;}
+[data-theme="dark"] .auth-field input{background:#0f172a;color:#f1f5f9;border-color:#334155;}
+[data-theme="dark"] .scroll-view{background:#0f172a;}
+[data-theme="dark"] .card-list .no-data{color:#475569;}
+[data-theme="dark"] .tl-month{color:#94a3b8;border-bottom-color:#334155;}
+[data-theme="dark"] .tl-dot{border-color:#0f172a;}
+[data-theme="dark"] select option{background:#1e293b;color:#f1f5f9;}
+[data-theme="dark"] #year-selector{background:#1e293b;color:#22c55e;border-color:#22c55e;}
+[data-theme="dark"] .field-chip-pick{background:#1e293b;border-color:#334155;color:#94a3b8;}
+[data-theme="dark"] .field-chip-pick.selected{background:#052e16;border-color:#22c55e;color:#22c55e;}
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font)}
+/* ── TIMELINE ─────────────────────────────────────────────────────── */
+.tl-month{
+  font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.08em;
+  text-transform:uppercase;padding:8px 0 6px;margin-top:4px;
+  border-bottom:1px solid var(--border-light);margin-bottom:8px;
+  display:flex;align-items:center;gap:8px;
+}
+.tl-month::before{content:'';flex:1;height:1px;background:var(--border-light);}
+.tl-entry{
+  display:flex;gap:12px;margin-bottom:10px;position:relative;
+}
+.tl-line-col{
+  display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:20px;
+}
+.tl-dot{
+  width:12px;height:12px;border-radius:50%;border:2px solid var(--surface);
+  flex-shrink:0;margin-top:4px;box-shadow:0 0 0 2px currentColor;
+}
+.tl-line{
+  width:2px;flex:1;background:var(--border-light);margin-top:4px;min-height:20px;
+}
+.tl-card{
+  flex:1;min-width:0;background:var(--surface);border:1px solid var(--border-light);
+  border-radius:var(--radius-sm);padding:10px 13px;box-shadow:var(--shadow);
+  transition:box-shadow .15s;margin-bottom:2px;
+}
+.tl-card:hover{box-shadow:var(--shadow-md);}
+.tl-date{font-size:10px;color:var(--muted);font-weight:600;margin-bottom:4px;}
+.tl-title{font-size:13px;font-weight:700;font-family:var(--font-display);margin-bottom:3px;}
+.tl-meta{font-size:11px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;}
+.tl-cost{font-size:12px;font-weight:800;color:var(--orange);}
+
+/* ── DARK MODE BUTTON ─────────────────────────────────────────────── */
+#btn-darkmode{
+  background:none;border:1.5px solid rgba(255,255,255,0.4);
+  border-radius:20px;padding:3px 10px;color:#fff;font-size:14px;
+  cursor:pointer;transition:all .2s;flex-shrink:0;
+}
+#btn-darkmode:hover{background:rgba(255,255,255,0.15);}
+[data-theme="dark"] #btn-darkmode{border-color:rgba(255,255,255,0.2);}
 #app{display:flex;flex-direction:column;height:100%}
 
 /* ── HEADER ─────────────────────────────────────────────────────── */
@@ -492,6 +596,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
       <span class="hc" id="stat-cost">0 lei</span>
     </div>
     <button id="user-menu-btn" onclick="showUserMenu()">👤 <span id="user-email-short"></span></button>
+    <button id="btn-darkmode" onclick="toggleDarkMode()" title="Light / Dark mode">☀️</button>
   </div>
   <div id="nav">
     <button class="nav-btn active" id="nav-map" onclick="switchView('map')">🗺 Hartă</button>
@@ -636,6 +741,11 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
           <button class="btn btn-sm btn-green" onclick="exportAPIA()" title="Export Excel APIA">📊 Export APIA</button>
           <button class="btn btn-sm btn-blue" onclick="openTreatmentForm()">+ Înregistrează</button>
         </div>
+      </div>
+      <!-- sub-tabs -->
+      <div style="display:flex;gap:4px;margin-bottom:8px;border-bottom:2px solid var(--border-light);padding-bottom:0;">
+        <button id="tl-tab-all" onclick="switchTreatmentTab('all')" style="font-size:11px;font-weight:700;padding:6px 14px;border:none;border-bottom:2px solid var(--green);margin-bottom:-2px;background:none;color:var(--green);cursor:pointer;">📋 Toate</button>
+        <button id="tl-tab-groups" onclick="switchTreatmentTab('groups')" style="font-size:11px;font-weight:700;padding:6px 14px;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;background:none;color:var(--muted);cursor:pointer;">🔗 Grupate</button>
       </div>
       <div class="filter-chips" id="treatments-filter-chips" style="flex-wrap:wrap;gap:4px;margin-bottom:4px;"></div>
       <div id="treatments-select-all-bar" style="display:none;margin-bottom:6px;">
@@ -1362,6 +1472,7 @@ function saveDieselPrice() {
   setTimeout(function(){if(note)note.textContent='';}, 3000);
 }
 function initApp() {
+  initTheme();
   initMap();
   renderAll();
   renderCulturesPanel();
@@ -3171,6 +3282,120 @@ function deleteProduct(id) {
 let treatmentSelectMode = false;
 let selectedTreatmentIds = new Set();
 let treatmentFilter = 'toate';
+let treatmentTab = 'all'; // 'all' | 'groups'
+
+function switchTreatmentTab(tab) {
+  treatmentTab = tab;
+  document.getElementById('tl-tab-all').style.borderBottomColor = tab === 'all' ? 'var(--green)' : 'transparent';
+  document.getElementById('tl-tab-all').style.color = tab === 'all' ? 'var(--green)' : 'var(--muted)';
+  document.getElementById('tl-tab-groups').style.borderBottomColor = tab === 'groups' ? 'var(--green)' : 'transparent';
+  document.getElementById('tl-tab-groups').style.color = tab === 'groups' ? 'var(--green)' : 'var(--muted)';
+  // ascundem filtrele și selectarea în modul grupat
+  const fChips = document.getElementById('treatments-filter-chips');
+  const selBar = document.getElementById('treatments-select-all-bar');
+  const selBtn = document.getElementById('btn-select-treatments');
+  if (fChips) fChips.style.display = tab === 'groups' ? 'none' : '';
+  if (selBar) selBar.style.display = 'none';
+  if (selBtn) selBtn.style.display = tab === 'groups' ? 'none' : '';
+  if (tab === 'groups') renderGroupedTreatmentsView();
+  else renderTreatmentsView();
+}
+
+function renderGroupedTreatmentsView() {
+  const root = document.getElementById('treatments-list'); if (!root) return; root.innerHTML = '';
+  const d = yd(); if (!d) { root.innerHTML = '<div class="no-data">Nicio lucrare înregistrată.</div>'; return; }
+  const list = d.treatments;
+
+  // grupăm după groupId
+  const groups = {};
+  const singles = [];
+  list.forEach(t => {
+    if (t.groupId) {
+      if (!groups[t.groupId]) groups[t.groupId] = [];
+      groups[t.groupId].push(t);
+    } else {
+      singles.push(t);
+    }
+  });
+
+  const groupEntries = Object.entries(groups).sort((a,b) => (b[1][0].date||'').localeCompare(a[1][0].date||''));
+
+  if (!groupEntries.length) {
+    root.innerHTML = '<div class="no-data">Nicio lucrare înregistrată pe parcele multiple.<br><span style="font-size:11px;color:var(--dim);">Lucrările multiple se creează selectând mai multe parcele la înregistrare.</span></div>';
+    return;
+  }
+
+  groupEntries.forEach(([groupId, records]) => {
+    const first = records[0];
+    const totalCost = records.reduce((s,t) => s+(Number(t.totalCost)||0), 0);
+    const totalHa = records.reduce((s,t) => { const f=state.fields.find(x=>x.id===t.fieldId); return s+(Number(f?.areaHectares)||0); }, 0);
+    const fieldNames = records.map(t => state.fields.find(x=>x.id===t.fieldId)?.name || '—');
+    const substLine = (first.substances||[]).map(s=>`${s.productName} ${s.dose}${s.unit}/ha`).join(', ');
+
+    const card = document.createElement('div');
+    card.style.cssText = 'background:var(--surface);border:1px solid var(--border-light);border-left:4px solid var(--teal);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);cursor:pointer;';
+    card.onmouseenter = () => card.style.boxShadow = 'var(--shadow-md)';
+    card.onmouseleave = () => card.style.boxShadow = 'var(--shadow)';
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div>
+          <div style="font-size:13px;font-weight:800;font-family:var(--font-display);color:var(--teal);">🔗 ${first.workType||'Lucrare'} <span style="font-size:10px;background:var(--teal);color:#fff;border-radius:10px;padding:1px 7px;">${records.length} parcele</span></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">📅 ${fmtPeriod(first.date, first.dateEnd)} · ${fmtN(totalHa,2)} ha total</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:14px;font-weight:800;color:var(--orange);">${fmt(totalCost)} lei</div>
+          <div style="font-size:10px;color:var(--muted);">${totalHa>0?fmt(totalCost/totalHa)+' lei/ha':''}</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">
+        ${fieldNames.map((n,i) => `<span style="font-size:10px;background:var(--surface2);border:1px solid var(--border-light);border-radius:6px;padding:2px 7px;">${n} (${fmtN(records[i]?Number(state.fields.find(x=>x.id===records[i].fieldId)?.areaHectares)||0:0,2)} ha)</span>`).join('')}
+      </div>
+      ${substLine ? `<div style="font-size:11px;color:var(--text);background:var(--surface2);border-radius:6px;padding:4px 8px;margin-bottom:6px;">🧪 ${substLine}</div>` : ''}
+      ${first.tractorName ? `<div style="font-size:11px;color:var(--muted);">🚜 ${first.tractorName}${first.implementName?' + '+first.implementName:''}</div>` : ''}
+      ${first.notes ? `<div style="font-size:11px;color:var(--dim);font-style:italic;">${first.notes}</div>` : ''}
+      <div style="margin-top:10px;">
+        <button class="btn btn-sm btn-teal" onclick="event.stopPropagation();editTreatmentGroup('${groupId}')" style="width:100%;border-color:var(--teal);color:var(--teal);">✎ Editează toate ${records.length} parcele simultan</button>
+      </div>`;
+    root.appendChild(card);
+  });
+}
+
+function editTreatmentGroup(groupId) {
+  const d = yd(); if (!d) return;
+  const records = d.treatments.filter(t => t.groupId === groupId);
+  if (!records.length) return;
+  const first = records[0];
+
+  // deschidem formularul pre-completat cu toate parcelele grupului
+  openTreatmentForm();
+  setTimeout(() => {
+    // pre-selectăm toate parcelele din grup
+    const fieldIds = records.map(t => t.fieldId);
+    renderTreatFieldPicker(fieldIds);
+    updateTreatFieldSummary();
+    // pre-completăm câmpurile
+    document.getElementById('treat-date').value = first.date || '';
+    const dateEnd = document.getElementById('treat-date-end');
+    if (dateEnd) dateEnd.value = first.dateEnd || '';
+    const wt = document.getElementById('treat-work-type');
+    if (wt) { wt.value = first.workType || ''; filterSubstancesByWorkType(); }
+    const tr = document.getElementById('treat-tractor');
+    if (tr && first.tractorId) tr.value = first.tractorId;
+    const im = document.getElementById('treat-implement');
+    if (im && first.implementId) im.value = first.implementId;
+    document.getElementById('treat-notes').value = first.notes || '';
+    document.getElementById('treat-fuel-liters').value = first.fuelNorm || '';
+    // substanțe
+    clearSubstanceRows();
+    if (first.substances && first.substances.length) {
+      first.substances.forEach(s => addSubstanceRow(s.prodId, s.dose, ''));
+    } else addSubstanceRow();
+    // la salvare — ștergem recordurile vechi și le înlocuim
+    document.getElementById('treat-edit-id').value = '__group__' + groupId;
+    document.getElementById('treatment-modal').querySelector('.modal-title').textContent = `✎ Editează grup (${records.length} parcele)`;
+    updateTreatCalc();
+  }, 100);
+}
 
 function renderTreatmentFilters() {
   const root = document.getElementById('treatments-filter-chips'); if (!root) return;
@@ -3241,45 +3466,115 @@ function deleteSelectedTreatments() {
 
 function renderTreatmentsView() {
   renderTreatmentFilters();
-  const root = document.getElementById('treatments-list'); if(!root) return; root.innerHTML = '';
+  const root = document.getElementById('treatments-list'); if (!root) return; root.innerHTML = '';
   const d = yd();
   let list = d ? d.treatments : [];
   if (treatmentFilter !== 'toate') list = list.filter(t => t.workType === treatmentFilter);
   if (!list.length) { root.innerHTML = '<div class="no-data">' + (treatmentFilter !== 'toate' ? 'Nicio lucrare de tip "' + treatmentFilter + '".' : 'Nicio lucrare înregistrată.') + '</div>'; return; }
-  [...list].sort((a,b) => (b.date||'').localeCompare(a.date||'')).forEach(t => {
-    const field = state.fields.find(f => f.id === t.fieldId);
-    const substLine = t.substances?.length
-      ? t.substances.map(s => `${s.productName} ${s.dose}${s.unit}/ha`).join(', ')
-      : (t.productName || '—');
-    const isSelected = selectedTreatmentIds.has(t.id);
-    const card = document.createElement('div');
-    card.className = 'treat-card';
-    if (treatmentSelectMode && isSelected) card.style.cssText = 'background:var(--green-soft);border-left-color:var(--green);border-left-width:4px;outline:1.5px solid var(--green);';
-    card.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
-        <div style="display:flex;align-items:flex-start;gap:8px;">
-          ${treatmentSelectMode ? `<input type="checkbox" ${isSelected?'checked':''} style="width:16px;height:16px;margin-top:2px;flex-shrink:0;accent-color:var(--green);" onclick="event.stopPropagation();toggleTreatmentSelect('${t.id}')"/>` : ''}
-          <div>
-            <strong style="font-family:var(--font-display);font-size:13px;">${t.workType || 'Lucrare'}</strong>
-            ${t.date ? `<span style="color:var(--muted);font-size:11px;"> · ${fmtPeriod(t.date,t.dateEnd)}</span>` : ''}
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <strong style="color:var(--orange);font-size:13px;">${fmt(t.totalCost)} lei</strong>
-          ${!treatmentSelectMode ? `<button class="btn btn-sm btn-gray" onclick="editTreatment('${t.id}')" style="padding:2px 7px;">✎</button>` : ''}
-        </div>
-      </div>
-      <div style="font-size:11px;color:var(--muted);">📍 ${field?.name || '—'}</div>
-      ${substLine !== '—' ? `<div style="font-size:11px;color:var(--text);margin-top:3px;">🧪 ${substLine}</div>` : ''}
-      ${t.fuelLiters > 0 ? `<div style="font-size:11px;color:var(--muted);">⛽ ${t.fuelNorm ? fmtN(t.fuelNorm,1)+' L/ha → ' : ''}${t.fuelLiters}L · ${fmt(t.fuelCost)} lei</div>` : ''}
-      ${t.tractorName ? `<div style="font-size:11px;color:var(--orange);">🚜 ${t.tractorName}${t.implementName ? ' + ' + t.implementName : ''}</div>` : (t.implementName ? `<div style="font-size:11px;color:var(--blue);">⚙️ ${t.implementName}</div>` : '')}
-      ${t.notes ? `<div style="font-size:11px;color:var(--dim);margin-top:2px;font-style:italic;">${t.notes}</div>` : ''}`;
-    if (treatmentSelectMode) {
-      card.style.cursor = 'pointer';
-      card.onclick = () => toggleTreatmentSelect(t.id);
-    }
-    root.appendChild(card);
+
+  // sortăm descrescător
+  const sorted = [...list].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+  // grupăm pe lună
+  const byMonth = {};
+  sorted.forEach(t => {
+    const d2 = t.date || '';
+    const key = d2.length >= 7 ? d2.slice(0,7) : 'necunoscut'; // YYYY-MM
+    if (!byMonth[key]) byMonth[key] = [];
+    byMonth[key].push(t);
   });
+
+  const WORKTYPE_COLORS = {
+    'Arătură':'#854d0e','Discuit':'#a16207','Cultivat':'#92400e',
+    'Semănat':'#166534','Fertilizare':'#1e40af','Erbicidare':'#991b1b',
+    'Fungicidare':'#7c2d12','Insecticidare':'#701a75','Irigare':'#0e7490',
+    'Recoltare':'#f59e0b','Altele':'#6b7280'
+  };
+
+  Object.entries(byMonth).forEach(([monthKey, entries], mIdx) => {
+    // header lună
+    let monthLabel = monthKey;
+    if (monthKey !== 'necunoscut') {
+      const [yr, mo] = monthKey.split('-');
+      const luni = ['','Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];
+      monthLabel = (luni[parseInt(mo)] || mo) + ' ' + yr;
+    }
+    const mHeader = document.createElement('div');
+    mHeader.className = 'tl-month';
+    mHeader.textContent = monthLabel;
+    root.appendChild(mHeader);
+
+    // timeline entries pentru această lună
+    entries.forEach((t, idx) => {
+      const field = state.fields.find(f => f.id === t.fieldId);
+      const substLine = t.substances?.length
+        ? t.substances.map(s => `${s.productName} ${s.dose}${s.unit}/ha`).join(', ')
+        : (t.productName || '');
+      const isSelected = selectedTreatmentIds.has(t.id);
+      const dotColor = WORKTYPE_COLORS[t.workType] || '#6b7280';
+      const isLast = idx === entries.length - 1 && Object.keys(byMonth).indexOf(monthKey) === Object.keys(byMonth).length - 1;
+
+      const entry = document.createElement('div');
+      entry.className = 'tl-entry';
+      if (treatmentSelectMode) {
+        entry.style.cursor = 'pointer';
+        entry.onclick = () => toggleTreatmentSelect(t.id);
+      } else {
+        entry.style.cursor = 'pointer';
+        entry.onclick = (e) => {
+          if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+          editTreatment(t.id);
+        };
+      }
+
+      entry.innerHTML = `
+        <div class="tl-line-col">
+          <div class="tl-dot" style="color:${dotColor};background:${dotColor};"></div>
+          ${!isLast ? '<div class="tl-line"></div>' : ''}
+        </div>
+        <div class="tl-card${isSelected?' tl-selected':''}" style="${isSelected?'outline:2px solid var(--green);background:var(--green-soft);':''}">
+          <div class="tl-date">${fmtPeriod(t.date, t.dateEnd)}</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+            <div style="flex:1;min-width:0;">
+              <div class="tl-title" style="color:${dotColor};">
+                ${treatmentSelectMode ? `<input type="checkbox" ${isSelected?'checked':''} style="width:14px;height:14px;accent-color:var(--green);margin-right:6px;vertical-align:middle;" onclick="event.stopPropagation();toggleTreatmentSelect('${t.id}')"/>` : ''}
+                ${t.workType || 'Lucrare'}
+              </div>
+              <div class="tl-meta">
+                <span>📍 ${field?.name || '—'}${field ? ' · ' + fmtN(field.areaHectares,2) + ' ha' : ''}</span>
+                ${t.tractorName ? `<span>🚜 ${t.tractorName}${t.implementName?' + '+t.implementName:''}</span>` : ''}
+              </div>
+              ${substLine ? `<div style="font-size:11px;color:var(--text);margin-top:4px;padding:4px 6px;background:var(--surface2);border-radius:6px;">🧪 ${substLine}</div>` : ''}
+              ${t.fuelLiters > 0 ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;">⛽ ${t.fuelNorm ? fmtN(t.fuelNorm,1)+' L/ha → ' : ''}${fmtN(t.fuelLiters,1)} L</div>` : ''}
+              ${t.notes ? `<div style="font-size:10px;color:var(--dim);margin-top:3px;font-style:italic;">${t.notes}</div>` : ''}
+            </div>
+            <div style="text-align:right;flex-shrink:0;">
+              <div class="tl-cost">${fmt(t.totalCost)} lei</div>
+              ${field && Number(field.areaHectares) > 0 ? `<div style="font-size:10px;color:var(--muted);">${fmt(t.totalCost/Number(field.areaHectares))} lei/ha</div>` : ''}
+            </div>
+          </div>
+        </div>`;
+      root.appendChild(entry);
+    });
+  });
+}
+
+// ── DARK MODE ──────────────────────────────────────────────────────────────────
+function toggleDarkMode() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const newTheme = isDark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', newTheme);
+  document.getElementById('btn-darkmode').textContent = newTheme === 'dark' ? '🌙' : '☀️';
+  localStorage.setItem('sf_theme', newTheme);
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('sf_theme') || 'light';
+  if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    const btn = document.getElementById('btn-darkmode');
+    if (btn) btn.textContent = '🌙';
+  }
 }
 
 function toggleTreatmentSelect(id) {
@@ -3504,6 +3799,12 @@ function saveTreatment() {
   const d = yd(); if (!d) { alert('Selecteaza un an agricol mai intai.'); return; }
   if (!treatSelectedFieldIds.size) { alert('Selecteaza cel putin o parcela.'); return; }
   const editId = document.getElementById('treat-edit-id') ? document.getElementById('treat-edit-id').value : '';
+
+  // editare grup — ștergem recordurile vechi și creăm altele noi cu același groupId
+  if (editId && editId.startsWith('__group__')) {
+    const oldGroupId = editId.replace('__group__', '');
+    d.treatments = d.treatments.filter(t => t.groupId !== oldGroupId);
+  }
   const totalArea = getTreatTotalArea();
   const substances = getSubstancesData(totalArea);
   const fuelNorm = Number(document.getElementById('treat-fuel-liters').value) || 0;
@@ -3521,12 +3822,13 @@ function saveTreatment() {
   const implementName = implementId ? state.machinery.find(m => m.id === implementId)?.name || '' : '';
   const fieldIds = [...treatSelectedFieldIds];
   const totalFieldHa = fieldIds.reduce((s, id) => { const f = state.fields.find(x => x.id === id); return s + (Number(f?.areaHectares)||0); }, 0) || 1;
+  const groupId = (editId && editId.startsWith('__group__')) ? editId.replace('__group__','') : (fieldIds.length > 1 ? gid() : null);
   fieldIds.forEach(fieldId => {
     const f = state.fields.find(x => x.id === fieldId); if (!f) return;
     const prop = (Number(f.areaHectares)||0) / totalFieldHa;
     const tRecord = {
       id: gid(), date, dateEnd: document.getElementById('treat-date-end') ? document.getElementById('treat-date-end').value : '',
-      fieldId, workType, tractorId, tractorName, implementId, implementName, notes,
+      fieldId, groupId, workType, tractorId, tractorName, implementId, implementName, notes,
       substances: substances.map(function(s){return Object.assign({},s,{cost:Math.round(s.cost*prop*100)/100});}),
       fuelNorm: fuelNorm,
       fuelLiters: Math.round(fuelL * prop * 10)/10, fuelPricePerL: dieselP,
@@ -3542,9 +3844,10 @@ function saveTreatment() {
     d.treatments.push(tRecord);
   });
   save(); hideTreatmentForm(); updateHeaderStats();
-  // scade stocul automat pentru substanțele folosite
   deductStockForTreatment(substances);
-  if (selectedFieldId) openDetail(selectedFieldId); else renderTreatmentsView();
+  if (selectedFieldId) openDetail(selectedFieldId);
+  else if (treatmentTab === 'groups') renderGroupedTreatmentsView();
+  else renderTreatmentsView();
 }
 
 function renderCostsView() {
@@ -3895,15 +4198,24 @@ function setActiveYear(id) {
 function deleteAgriYear(id) {
   const y = state.years.find(x => x.id === id);
   if (!y) return;
-  const usedInTreatments = state.treatments.filter(t => t.yearId === id).length;
-  const usedInTasks = state.tasks.filter(t => t.yearId === id).length;
-  const msg = (usedInTreatments || usedInTasks)
-    ? `Ștergi anul "${y.name}"? Are ${usedInTreatments} tratamente și ${usedInTasks} sarcini asociate — acestea vor rămâne fără an.`
-    : `Ștergi anul "${y.name}"?`;
+  const ydData = state.yearData[id] || {};
+  const nTreat = (ydData.treatments || []).length;
+  const nTasks = (ydData.tasks || []).length;
+  const nHarv = (state.harvests && state.harvests[id] || []).length;
+  const isActive = state.activeYear === id;
+  let msg = `Ștergi anul agricol "${y.name}"?`;
+  const details = [];
+  if (nTreat) details.push(nTreat + ' lucrări');
+  if (nTasks) details.push(nTasks + ' sarcini planificate');
+  if (nHarv) details.push(nHarv + ' înregistrări recoltă');
+  if (details.length) msg += `\n\nConține: ${details.join(', ')}.\nTOATE aceste date vor fi șterse definitiv.`;
+  if (isActive) msg += '\n\n⚠️ Acesta este anul activ curent.';
   if (!confirm(msg)) return;
   state.years = state.years.filter(x => x.id !== id);
+  delete state.yearData[id];
+  if (state.harvests) delete state.harvests[id];
   if (state.activeYear === id) state.activeYear = state.years[0]?.id || null;
-  save(); renderYearList(); renderYearSelector(); updateHeaderStats();
+  save(); renderYearList(); renderYearSelector(); renderAll(); updateHeaderStats();
   if (currentView === 'costs') renderCostsView();
 }
 
