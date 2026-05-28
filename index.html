@@ -2107,8 +2107,15 @@ function addSubstanceRow(prodId = null, dose = '', area = '') {
   const id = gid();
   substanceRows.push(id);
   const container = document.getElementById('substances-list'); if (!container) return;
-  const workType = document.getElementById('treat-work-type')?.value || '';
-  const products = getProductsForWorkType(workType);
+  // folosim produsele combinate din toate tipurile selectate
+  let products;
+  if (selectedWorkTypes.size === 0) {
+    products = state.products;
+  } else {
+    const allMatched = new Set();
+    selectedWorkTypes.forEach(wt => getProductsForWorkType(wt).forEach(p => allMatched.add(p)));
+    products = allMatched.size > 0 ? [...allMatched] : state.products;
+  }
   const div = document.createElement('div');
   div.id = 'subst-' + id;
   div.style.cssText = 'background:var(--surface2);border:1px solid var(--border-light);border-radius:8px;padding:10px;margin-bottom:8px;';
