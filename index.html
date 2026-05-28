@@ -48,7 +48,24 @@
   --shadow-md:0 4px 16px rgba(0,0,0,0.10),0 1px 4px rgba(0,0,0,0.06);
 }
 
-/* ── DARK MODE ────────────────────────────────────────────────────── */
+/* ── WEATHER ──────────────────────────────────────────────────────── */
+#weather-widget:hover{background:rgba(255,255,255,0.15);}
+#weather-panel{
+  position:absolute;top:56px;right:140px;z-index:600;
+  width:320px;background:var(--surface);border:1px solid var(--border-light);
+  border-radius:var(--radius);box-shadow:var(--shadow-md);
+  display:none;overflow:hidden;
+}
+#weather-panel.open{display:block;}
+[data-theme="dark"] #weather-panel{background:#1e293b;border-color:#334155;}
+.wx-day{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 14px;border-bottom:1px solid var(--border-light);
+  transition:background .15s;
+}
+.wx-day:last-child{border-bottom:none;}
+.wx-day:hover{background:var(--surface2);}
+.wx-warn{background:#fef3c7;border-left:3px solid var(--amber);padding:6px 12px;font-size:11px;color:#92400e;}
 [data-theme="dark"]{
   --bg:#0f172a;
   --surface:#1e293b;
@@ -606,6 +623,14 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
       <select id="year-selector" class="field-input" style="font-size:11px;font-weight:700;padding:3px 6px;height:28px;border-color:var(--green);color:var(--green);background:var(--surface);width:auto;cursor:pointer;" onchange="switchYear(this.value)"></select>
       <button class="btn btn-sm btn-green" style="height:28px;padding:0 7px;font-size:13px;" onclick="showYearModal()" title="Gestionează ani agricoli">＋</button>
     </div>
+    <!-- Weather widget -->
+    <div id="weather-widget" onclick="toggleWeatherPanel()" style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:4px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.2);transition:background .15s;" title="Prognoză meteo">
+      <span id="weather-icon" style="font-size:18px;">🌤</span>
+      <div style="line-height:1.2;">
+        <div id="weather-temp" style="font-size:13px;font-weight:700;color:#fff;">—°C</div>
+        <div id="weather-desc" style="font-size:10px;color:rgba(255,255,255,0.7);">se încarcă...</div>
+      </div>
+    </div>
     <div id="hstats">
       <span class="hs" id="stat-fields">0 câmp.</span>
       <span class="ht" id="stat-tasks">0 active</span>
@@ -614,6 +639,19 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
     <button id="user-menu-btn" onclick="showUserMenu()">👤 <span id="user-email-short"></span></button>
     <button id="btn-darkmode" onclick="toggleDarkMode()" title="Light / Dark mode">☀️</button>
   </div>
+
+  <!-- Weather panel -->
+  <div id="weather-panel">
+    <div style="padding:12px 14px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;">
+      <strong style="font-size:13px;font-family:var(--font-display);">🌦 Prognoză meteo</strong>
+      <span id="weather-location" style="font-size:11px;color:var(--muted);"></span>
+    </div>
+    <div id="weather-warnings"></div>
+    <div id="weather-today" style="padding:12px 14px;border-bottom:1px solid var(--border-light);"></div>
+    <div id="weather-forecast" style="padding:6px 0;max-height:260px;overflow-y:auto;"></div>
+    <div style="padding:6px 14px;font-size:10px;color:var(--dim);text-align:right;">Open-Meteo · actualizat <span id="weather-updated"></span></div>
+  </div>
+
   <div id="nav">
     <button class="nav-btn active" id="nav-map" onclick="switchView('map')">🗺 Hartă</button>
     <button class="nav-btn" id="nav-fields" onclick="switchView('fields')">🌾 Câmpuri</button>
@@ -1566,6 +1604,8 @@ function initApp() {
   populateMachinerySelects();
   renderYearSelector();
   setTimeout(() => { map.invalidateSize(); zoomToAllFields(); }, 400);
+  // încarcă meteo după 1s să nu blocheze inițializarea
+  setTimeout(() => loadWeather(), 1000);
 }
 
 // ── BOOT ──────────────────────────────────────────────────────────────────────
@@ -1657,7 +1697,7 @@ function switchView(view) {
   document.getElementById('costs-view').style.display = view === 'costs' ? 'flex' : 'none';
   document.getElementById('settings-view').style.display = view === 'settings' ? 'flex' : 'none';
 
-  if (view === 'map') { setTimeout(() => { map.invalidateSize(); zoomToAllFields(); }, 50); selectedFieldId = null; highlightLayer(null); }
+  if (view === 'map') { setTimeout(() => { map.invalidateSize(); if (window._savedMapCenter && window._savedMapZoom) { map.setView(window._savedMapCenter, window._savedMapZoom); } else { zoomToAllFields(); } }, 50); selectedFieldId = null; highlightLayer(null); }
   else {
     if (multiSelectMode) toggleMultiSelectMode();
     if (view === 'fields') { renderFieldsView(); }
@@ -2722,6 +2762,8 @@ function closeCropPanel() {
 
 function openDetail(id) {
   selectedFieldId = id;
+  // salvăm poziția hărții înainte de a deschide fișa
+  if (map) { window._savedMapCenter = map.getCenter(); window._savedMapZoom = map.getZoom(); }
   const f = state.fields.find(field => field.id === id); if (!f) return;
   const fc = fieldCrop(id);
   document.getElementById('map-view').style.display = 'none';
@@ -2760,7 +2802,12 @@ function closeDetail() {
   document.getElementById('field-detail').style.display = 'none';
   document.getElementById('map-view').style.display = 'flex';
   selectedFieldId = null; renderAll();
-  setTimeout(() => { map.invalidateSize(); zoomToAllFields(); }, 50);
+  setTimeout(() => {
+    map.invalidateSize();
+    if (window._savedMapCenter && window._savedMapZoom) {
+      map.setView(window._savedMapCenter, window._savedMapZoom);
+    }
+  }, 50);
 }
 function changeFieldCrop(newCrop) {
   if (!selectedFieldId) return;
@@ -3947,6 +3994,160 @@ function renderTreatmentsView() {
     });
   });
 }
+
+// ── METEO ─────────────────────────────────────────────────────────────────────
+const WMO_CODES = {
+  0:'Cer senin',1:'Predominant senin',2:'Parțial noros',3:'Înnorat',
+  45:'Ceață',48:'Ceață cu chiciură',
+  51:'Burniță ușoară',53:'Burniță moderată',55:'Burniță densă',
+  61:'Ploaie ușoară',63:'Ploaie moderată',65:'Ploaie torențială',
+  71:'Ninsoare ușoară',73:'Ninsoare moderată',75:'Ninsoare abundentă',
+  77:'Granule de zăpadă',
+  80:'Averse ușoare',81:'Averse moderate',82:'Averse violente',
+  85:'Averse de ninsoare ușoare',86:'Averse de ninsoare abundente',
+  95:'Furtună',96:'Furtună cu grindină ușoară',99:'Furtună cu grindină'
+};
+const WMO_ICONS = {
+  0:'☀️',1:'🌤',2:'⛅',3:'☁️',
+  45:'🌫',48:'🌫',
+  51:'🌦',53:'🌦',55:'🌧',
+  61:'🌧',63:'🌧',65:'🌧',
+  71:'🌨',73:'🌨',75:'❄️',77:'🌨',
+  80:'🌦',81:'🌧',82:'⛈',
+  85:'🌨',86:'❄️',
+  95:'⛈',96:'⛈',99:'⛈'
+};
+
+let weatherData = null;
+let weatherLat = 47.785, weatherLon = 26.435; // default Botoșani
+
+async function loadWeather() {
+  // folosim centrul parcelelor dacă există, altfel default
+  if (state.fields.length > 0 && state.fields[0].geometry) {
+    try {
+      const coords = extractCentroid(state.fields[0].geometry);
+      if (coords) { weatherLat = coords[1]; weatherLon = coords[0]; }
+    } catch(e) {}
+  }
+
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${weatherLat}&longitude=${weatherLon}` +
+      `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m,weather_code` +
+      `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max` +
+      `&timezone=Europe%2FBucharest&forecast_days=15`;
+    const resp = await fetch(url);
+    weatherData = await resp.json();
+    renderWeatherWidget();
+    renderWeatherPanel();
+  } catch(e) {
+    document.getElementById('weather-desc').textContent = 'indisponibil';
+  }
+}
+
+function extractCentroid(geojson) {
+  try {
+    const coords = geojson.type === 'Feature' ? geojson.geometry.coordinates :
+                   geojson.type === 'FeatureCollection' ? geojson.features[0].geometry.coordinates :
+                   geojson.coordinates;
+    const flat = coords[0][0];
+    if (Array.isArray(flat[0])) return flat[0][0];
+    return flat[0];
+  } catch(e) { return null; }
+}
+
+function renderWeatherWidget() {
+  if (!weatherData || !weatherData.current) return;
+  const c = weatherData.current;
+  const code = c.weather_code;
+  document.getElementById('weather-icon').textContent = WMO_ICONS[code] || '🌡';
+  document.getElementById('weather-temp').textContent = Math.round(c.temperature_2m) + '°C';
+  document.getElementById('weather-desc').textContent = WMO_CODES[code] || '';
+}
+
+function renderWeatherPanel() {
+  if (!weatherData) return;
+  const c = weatherData.current;
+  const d = weatherData.daily;
+  const now = new Date();
+
+  // locație
+  document.getElementById('weather-location').textContent = `${weatherLat.toFixed(2)}°N ${weatherLon.toFixed(2)}°E`;
+  document.getElementById('weather-updated').textContent = now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
+
+  // azi detaliat
+  const todayEl = document.getElementById('weather-today');
+  todayEl.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+      <span style="font-size:36px;">${WMO_ICONS[c.weather_code]||'🌡'}</span>
+      <div>
+        <div style="font-size:22px;font-weight:800;font-family:var(--font-display);">${Math.round(c.temperature_2m)}°C</div>
+        <div style="font-size:12px;color:var(--muted);">Simte ca ${Math.round(c.apparent_temperature)}°C · ${WMO_CODES[c.weather_code]||''}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px;">
+      <div style="background:var(--surface2);border-radius:8px;padding:6px;text-align:center;">
+        <div style="color:var(--muted);margin-bottom:2px;">💧 Umiditate</div>
+        <strong>${c.relative_humidity_2m}%</strong>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:6px;text-align:center;">
+        <div style="color:var(--muted);margin-bottom:2px;">🌧 Precipitații</div>
+        <strong>${c.precipitation} mm</strong>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:6px;text-align:center;">
+        <div style="color:var(--muted);margin-bottom:2px;">💨 Vânt</div>
+        <strong>${Math.round(c.wind_speed_10m)} km/h</strong>
+      </div>
+    </div>`;
+
+  // avertizări pentru agricultori
+  const warnings = [];
+  if (d.precipitation_sum[0] > 10) warnings.push('⚠️ Precipitații abundente azi — evită tratamentele');
+  if (d.precipitation_probability_max[1] > 60) warnings.push('🌧 Probabilitate ploaie mâine >60% — planifică corespunzător');
+  if (d.wind_speed_10m_max[0] > 25) warnings.push('💨 Vânt puternic azi — nu aplica erbicide/fungicide');
+  if (d.temperature_2m_max[0] > 30) warnings.push('🌡 Temperaturi ridicate — eficiență redusă tratamente foliar');
+  if (d.temperature_2m_min[0] < 2) warnings.push('❄️ Risc de îngheț în noaptea asta');
+
+  const warnEl = document.getElementById('weather-warnings');
+  warnEl.innerHTML = warnings.map(w => `<div class="wx-warn">${w}</div>`).join('');
+
+  // prognoză 7 zile
+  const forecastEl = document.getElementById('weather-forecast');
+  const zileSapt = ['Dum','Lun','Mar','Mie','Joi','Vin','Sâm'];
+  forecastEl.innerHTML = d.time.map((date, i) => {
+    const d2 = new Date(date);
+    const isToday = i === 0;
+    const isRainy = (d.precipitation_sum[i] > 2) || (d.precipitation_probability_max[i] > 50);
+    return `<div class="wx-day">
+      <div style="width:36px;font-size:11px;font-weight:${isToday?'800':'600'};color:${isToday?'var(--green)':'var(--text)'};">
+        ${isToday ? 'Azi' : zileSapt[d2.getDay()]}
+      </div>
+      <span style="font-size:18px;">${WMO_ICONS[d.weather_code[i]]||'🌡'}</span>
+      <div style="flex:1;padding:0 8px;">
+        <div style="font-size:11px;color:var(--muted);">${WMO_CODES[d.weather_code[i]]||''}</div>
+        ${isRainy ? `<div style="font-size:10px;color:var(--blue);">🌧 ${d.precipitation_sum[i]}mm · ${d.precipitation_probability_max[i]}%</div>` : ''}
+      </div>
+      <div style="text-align:right;font-size:12px;">
+        <span style="font-weight:700;">${Math.round(d.temperature_2m_max[i])}°</span>
+        <span style="color:var(--muted);margin-left:4px;">${Math.round(d.temperature_2m_min[i])}°</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleWeatherPanel() {
+  const panel = document.getElementById('weather-panel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open') && !weatherData) loadWeather();
+}
+
+// închide panoul meteo la click în afară
+document.addEventListener('click', e => {
+  const panel = document.getElementById('weather-panel');
+  const widget = document.getElementById('weather-widget');
+  if (panel && widget && !panel.contains(e.target) && !widget.contains(e.target)) {
+    panel.classList.remove('open');
+  }
+});
 
 // ── DARK MODE ──────────────────────────────────────────────────────────────────
 function toggleDarkMode() {
