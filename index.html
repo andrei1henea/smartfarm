@@ -833,10 +833,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 
     <!-- Seed Converter Modal -->
     <div id="seed-converter-modal" class="modal-overlay" style="display:none;">
-
-
-    <!-- Seed Converter Modal -->
-    <div id="seed-converter-modal" class="modal-overlay" style="display:none;">
       <div class="modal-box" style="width:340px;">
         <div class="modal-header"><div class="modal-title">🌱 Convertor Saci → Plante/ha</div><button class="modal-close" onclick="closeSeedConverter()">✕</button></div>
         <div style="padding:14px;display:flex;flex-direction:column;gap:10px;">
@@ -2361,7 +2357,10 @@ function addSubstanceRow(prodId = null, dose = '', area = '') {
       <div><label class="field-label">Doză / ha</label><input type="number" class="field-input" id="subst-dose-${id}" value="${dose}" step="0.01" placeholder="0" oninput="updateTreatCalc()"/></div>
       <div><label class="field-label">Suprafață (ha)</label><input type="number" class="field-input" id="subst-area-${id}" value="${area}" step="0.01" placeholder="0" oninput="updateTreatCalc()"/></div>
     </div>`;
+  const container = document.getElementById('substances-list');
+  if (!container) return;
   container.appendChild(div);
+  substanceRows.push(id);
   updateTreatCalc();
 }
 
@@ -2385,8 +2384,12 @@ function getSubstancesData(area = null) {
     const a = (areaEl && Number(areaEl.value) > 0) ? Number(areaEl.value) : totalArea;
     const p = state.products.find(x => x.id === prodId);
     if (!p) return null;
-    const cost = Math.round(dose * a * (p.pricePerUnit || 0) * 100) / 100;
-    return { prodId, productName: p.name, unit: p.unit, pricePerUnit: p.pricePerUnit || 0, dose, area: a, costPerHa: dose * (p.pricePerUnit||0), cost };
+    // sămânță: doza în plante/ha → convertim în saci pentru cost și scădere stoc
+    let qtyPerHa = dose, isSeed = false;
+    if (p.plantsPerUnit > 0) { isSeed = true; qtyPerHa = dose / p.plantsPerUnit; }
+    const cost = Math.round(qtyPerHa * a * (p.pricePerUnit || 0) * 100) / 100;
+    const totalQty = Math.round(qtyPerHa * a * 1000) / 1000; // cantitate totală în unitatea produsului
+    return { prodId, productName: p.name, unit: p.unit, pricePerUnit: p.pricePerUnit || 0, dose, qtyPerHa, area: a, costPerHa: qtyPerHa * (p.pricePerUnit||0), cost, isSeed, plantsPerUnit: p.plantsPerUnit||0, totalQty };
   }).filter(Boolean);
 }
 
@@ -2400,8 +2403,14 @@ function updateTreatCalc() {
     const isCustom = areaEl && Number(areaEl.value) > 0 && Number(areaEl.value) !== totalArea;
     const p = state.products.find(function(x){return x.id===prodId;});
     if (!p || !dose) return null;
-    const cost = Math.round(dose * a * (p.pricePerUnit || 0) * 100) / 100;
-    return { productName: p.name, unit: p.unit, dose, area: a, cost, isCustom };
+    // pentru sămânță (plantsPerUnit) doza e în plante/ha → convertim în saci pentru cost
+    let qtyPerHa = dose, displayDose = dose, displayUnit = p.unit, isSeed = false;
+    if (p.plantsPerUnit > 0) {
+      isSeed = true;
+      qtyPerHa = dose / p.plantsPerUnit; // saci/ha
+    }
+    const cost = Math.round(qtyPerHa * a * (p.pricePerUnit || 0) * 100) / 100;
+    return { productName: p.name, unit: p.unit, dose: displayDose, qtyPerHa, area: a, cost, isCustom, isSeed, plantsPerUnit: p.plantsPerUnit||0 };
   }).filter(Boolean);
   const fuelNorm = Number(document.getElementById("treat-fuel-liters") && document.getElementById("treat-fuel-liters").value) || 0;
   const fuelL = Math.round(fuelNorm * totalArea * 10) / 10;
@@ -2416,6 +2425,11 @@ function updateTreatCalc() {
   const calc = document.getElementById("treat-calc"); if (!calc) return;
   const lines = substances.map(function(s){
     var aLabel = s.isCustom ? "<span style='color:var(--blue);font-weight:700;'>" + fmtN(s.area,2) + " ha</span>" : fmtN(s.area,2) + " ha";
+    if (s.isSeed) {
+      var totalSaci = s.qtyPerHa * s.area;
+      return s.productName + ": " + Number(s.dose).toLocaleString('ro-RO') + " plante/ha x " + aLabel
+        + " = <strong>" + fmtN(totalSaci, 2) + " " + s.unit + "</strong> = <strong>" + fmt(s.cost) + " lei</strong>";
+    }
     return s.productName + ": " + s.dose + " " + s.unit + "/ha x " + aLabel + " = <strong>" + fmt(s.cost) + " lei</strong>";
   });
   if (fuelCost > 0) lines.push("&#9981; " + fmtN(fuelL,1) + "L x " + dieselP + " lei = <strong>" + fmt(fuelCost) + " lei</strong>");
@@ -5776,10 +5790,10 @@ function deductStockForTreatment(substances) {
   substances.forEach(s => {
     const p = state.products.find(x => x.id === s.prodId);
     if (!p) return;
-    const used = Math.round(s.dose * s.area * 100) / 100;
+    // folosim totalQty (deja convertit din plante în saci pentru sămânță)
+    const used = s.totalQty != null ? s.totalQty : Math.round((s.qtyPerHa != null ? s.qtyPerHa : s.dose) * s.area * 1000) / 1000;
     p.stock = Math.round((Number(p.stock) - used) * 100) / 100;
     if (p.stock < 0) p.stock = 0;
-    // alertă stoc mic (sub 10% din cantitate folosită × 10 = stoc pentru ~10 lucrări)
     const threshold = used * 5;
     if (p.stock < threshold && p.stock >= 0) {
       alerts.push(`⚠️ Stoc mic: ${p.name} — ${p.stock} ${p.unit} rămase`);
