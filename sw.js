@@ -1,4 +1,4 @@
-const CACHE = 'smartfarm-v5';
+const CACHE = 'smartfarm-v6';
 
 const STATIC_ASSETS = [
   './manifest.json',
@@ -28,48 +28,36 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Supabase — network only, nu cache niciodată
-  if (url.hostname.includes('supabase.co')) return;
+  // Ignorăm complet scheme non-http (chrome-extension, data, etc.)
+  if (!url.protocol.startsWith('http')) return;
 
-  // Tile-uri hartă — network only, nu cache (evită clone errors)
+  // Supabase, tile-uri hartă, favicon — network only
   if (
+    url.hostname.includes('supabase.co') ||
     url.hostname.includes('google.com') ||
     url.hostname.includes('arcgisonline.com') ||
     url.hostname.includes('openstreetmap.org') ||
-    url.pathname.includes('/vt/') ||
-    url.pathname.includes('MapServer/tile')
+    url.pathname.includes('favicon')
   ) return;
 
-  // index.html — ÎNTOTDEAUNA din rețea
-  if (
-    e.request.mode === 'navigate' ||
-    url.pathname.endsWith('index.html') ||
-    url.pathname === '/' ||
-    url.pathname.match(/\/smartfarm\/?$/)
-  ) {
+  // index.html — mereu din rețea
+  if (e.request.mode === 'navigate') {
     e.respondWith(
       fetch(e.request, { cache: 'no-store' }).catch(() => caches.match('./index.html'))
     );
     return;
   }
 
-  // favicon — network only dacă 404 nu îl cachăm
-  if (url.pathname.includes('favicon')) return;
-
-  // Restul — cache first, dar clone corect
+  // Restul — cache first
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
       return fetch(e.request).then(response => {
-        // clonăm ÎNAINTE să consumăm, și doar pentru responses valide
-        if (
-          response &&
-          response.status === 200 &&
-          response.type !== 'opaque' &&
-          !response.bodyUsed
-        ) {
-          const clone = response.clone();
-          caches.open(CACHE).then(cache => cache.put(e.request, clone));
+        if (response && response.status === 200 && !response.bodyUsed) {
+          try {
+            const clone = response.clone();
+            caches.open(CACHE).then(cache => cache.put(e.request, clone));
+          } catch(e) {}
         }
         return response;
       }).catch(() => {});

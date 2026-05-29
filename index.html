@@ -1428,6 +1428,8 @@ async function loadFromCloud() {
     if (data && data.data && data.data.fields) {
       applyRawState(data.data);
       localStorage.setItem(SK, JSON.stringify(state));
+      renderAll(); updateHeaderStats();
+      if (currentView === 'settings') switchView('settings');
       showSync('synced', 'Sincronizat');
       setTimeout(() => hideSync(), 2000);
       return true;
