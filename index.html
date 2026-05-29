@@ -1472,8 +1472,9 @@ function renderSettings() {
   const root = document.getElementById('settings-content');
   if (!root) return;
 
-  if (state.workTypes) state.workTypes = state.workTypes.map(w => typeof w === 'string' ? {name:w,norm:0} : w);
-  if (!state.implementPresets) state.implementPresets = {};
+  try {
+    if (state.workTypes) state.workTypes = state.workTypes.map(w => typeof w === 'string' ? {name:w,norm:0} : w);
+    if (!state.implementPresets) state.implementPresets = {};
 
   const f = state.farmer || {};
   const tractors = state.machinery.filter(m=>m.type==='tractor');
@@ -1626,7 +1627,12 @@ function renderSettings() {
       + '</div>';
   }
 
-  root.innerHTML = html;
+    root.innerHTML = html;
+  } catch(err) {
+    root.innerHTML = '<div style="padding:20px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#991b1b;font-size:12px;">'
+      + '<strong>Eroare la randarea setărilor:</strong><br><pre style="margin-top:8px;white-space:pre-wrap;">' + err.toString() + '</pre></div>';
+    console.error('renderSettings error:', err);
+  }
 }
 
 
