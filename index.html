@@ -858,95 +858,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
     </div>
 
     <div id="settings-view" class="scroll-view" style="display:none">
-
-      <div class="culture-manager-box">
-        <span style="font-size:11px;font-weight:800;color:var(--green);letter-spacing:.06em;display:block;margin-bottom:12px;">👤 DATE FERMIER / EXPLOATAȚIE</span>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <div class="two-col">
-            <div><label class="field-label">Nume și prenume</label><input class="field-input" id="farmer-name" placeholder="Ion Popescu" style="background:#fff;"/></div>
-            <div><label class="field-label">CNP / CIF</label><input class="field-input" id="farmer-cnp" placeholder="1234567890123" style="background:#fff;"/></div>
-          </div>
-          <div class="two-col">
-            <div><label class="field-label">Localitate</label><input class="field-input" id="farmer-city" placeholder="Botoșani" style="background:#fff;"/></div>
-            <div><label class="field-label">Județul</label><input class="field-input" id="farmer-county" placeholder="Botoșani" style="background:#fff;"/></div>
-          </div>
-          <div class="two-col">
-            <div><label class="field-label">Adresă</label><input class="field-input" id="farmer-address" placeholder="Str. ..., nr. ..." style="background:#fff;"/></div>
-            <div><label class="field-label">Telefon</label><input class="field-input" id="farmer-phone" placeholder="07xx xxx xxx" style="background:#fff;"/></div>
-          </div>
-          <div class="two-col">
-            <div><label class="field-label">Nr. înregistrare APIA</label><input class="field-input" id="farmer-apia" placeholder="RO..." style="background:#fff;"/></div>
-            <div><label class="field-label">Bancă / IBAN (opțional)</label><input class="field-input" id="farmer-iban" placeholder="RO49AAAA..." style="background:#fff;"/></div>
-          </div>
-          <button class="btn btn-green" onclick="saveFarmerProfile()" style="margin-top:4px;">✓ Salvează datele fermierului</button>
-          <div id="farmer-save-note" style="font-size:11px;color:var(--green);display:none;text-align:center;">✓ Salvat</div>
-        </div>
-      </div>
-
-      <div class="culture-manager-box">
-        <span style="font-size:11px;font-weight:800;color:var(--orange);letter-spacing:.06em;display:block;margin-bottom:8px;">⛽ MOTORINĂ</span>
-        <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;">
-          <input type="number" class="field-input" id="diesel-price-input" step="0.01" style="flex:1;background:#fff;" placeholder="lei/litru"/>
-          <span style="font-size:12px;color:var(--muted);white-space:nowrap;">lei / litru</span>
-          <button class="btn btn-orange" onclick="saveDieselPrice()">Salvează</button>
-        </div>
-        <div style="display:flex;gap:10px;align-items:center;">
-          <input type="number" class="field-input" id="diesel-norm-input" step="0.1" style="flex:1;background:#fff;" placeholder="ex: 12"/>
-          <span style="font-size:12px;color:var(--muted);white-space:nowrap;">L / ha normă</span>
-          <button class="btn btn-orange" onclick="saveDieselNorm()">Salvează</button>
-        </div>
-        <div style="font-size:11px;color:var(--muted);margin-top:6px;" id="diesel-price-note"></div>
-      </div>
-      <div class="culture-manager-box">
-        <span style="font-size:11px;font-weight:800;color:var(--teal);letter-spacing:.06em;display:block;margin-bottom:8px;">🚜 TIPURI LUCRĂRI</span>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Setează normă motorină, tractor și implement implicit per tip de lucrare.</div>
-        <div style="display:flex;gap:6px;margin-bottom:10px;">
-          <input type="text" class="field-input" id="new-worktype-name" placeholder="Tip lucrare nouă..." style="flex:1;background:#fff;"/>
-          <button class="btn btn-sm" style="border-color:var(--teal);color:var(--teal);background:#f0fdfa;" onclick="addWorkType()">+ Adaugă</button>
-        </div>
-        <div id="worktype-list"></div>
-      </div>
-
-      <div class="culture-manager-box">
-        <span style="font-size:11px;font-weight:800;color:var(--green);letter-spacing:.06em;display:block;margin-bottom:8px;">🌱 CULTURI</span>
-        <div style="display:flex;gap:6px;margin-bottom:10px;">
-          <input type="text" class="field-input" id="new-culture-name" placeholder="Nume cultură nouă" style="flex:1;background:#fff;"/>
-          <input type="color" id="new-culture-color" value="#16a34a" style="width:34px;height:34px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:#fff;padding:2px;"/>
-          <button class="btn btn-green" onclick="addNewCustomCulture()">+ Adaugă</button>
-        </div>
-        <div id="custom-cultures-list"></div>
-      </div>
-
-      <div class="culture-manager-box">
-        <span style="font-size:11px;font-weight:800;color:var(--purple);letter-spacing:.06em;display:block;margin-bottom:8px;">🧪 CATEGORII PRODUSE</span>
-        <div style="display:flex;gap:6px;margin-bottom:10px;">
-          <input type="text" class="field-input" id="new-prodcat-name" placeholder="Categorie nouă..." style="flex:1;background:#fff;"/>
-          <button class="btn btn-purple" onclick="addProductCategory()">+ Adaugă</button>
-        </div>
-        <div id="prodcat-list"></div>
-      </div>
-
-      <div class="culture-manager-box">
-        <span style="font-size:11px;font-weight:800;color:var(--blue);letter-spacing:.06em;display:block;margin-bottom:8px;">📐 UNITĂȚI DE MĂSURĂ</span>
-        <div style="display:flex;gap:6px;margin-bottom:10px;">
-          <input type="text" class="field-input" id="new-produnit-name" placeholder="Unitate nouă (ex: mc, buc)..." style="flex:1;background:#fff;"/>
-          <button class="btn btn-blue" onclick="addProductUnit()">+ Adaugă</button>
-        </div>
-        <div id="produnit-list"></div>
-      </div>
-
-      <div class="culture-manager-box">
-        <span style="font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.06em;display:block;margin-bottom:10px;">💾 DATE & BACKUP</span>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <button class="btn btn-green" onclick="forceSyncNow()">☁ Sincronizează acum cu cloud</button>
-          <button class="btn btn-purple" onclick="exportBackup()">💾 Exportă Backup JSON</button>
-          <label class="btn btn-yellow" style="display:block;text-align:center;cursor:pointer;">
-            📂 Încarcă Backup JSON <input type="file" accept=".json" style="display:none" onchange="importBackup(this)"/>
-          </label>
-          <button class="btn btn-red" id="btn-reset-settings" onclick="resetAll()" style="display:none">🗑 Resetează toate datele</button>
-        </div>
-      </div>
-
+      <div id="settings-content"></div>
     </div>
   </div>
 </div>
@@ -1098,6 +1010,15 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
         <div style="margin-top:6px;"><label class="field-label">Substanța activă</label><input class="field-input" id="prod-active-subst" placeholder="ex: Glifosat 360 g/L" style="background:#fff;"/></div>
       </div>
 
+      <div id="prod-seed-section" style="display:none;margin-bottom:10px;">
+        <div style="font-size:10px;font-weight:800;color:var(--green);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;">🌱 Date sămânță</div>
+        <div class="two-col">
+          <div><label class="field-label">Plante / sac</label><input type="number" class="field-input" id="prod-plants-per-unit" step="1000" placeholder="ex: 80000"/></div>
+          <div><label class="field-label">Germinație (%)</label><input type="number" class="field-input" id="prod-germination" placeholder="ex: 95" value=""/></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">La adăugarea în lucrare, doza în plante/ha se calculează automat.</div>
+      </div>
+
       <div style="margin-bottom:14px;">
         <label class="field-label">Preț de referință/U.M. (lei) — opțional</label>
         <input type="number" class="field-input" id="prod-buy-price" step="0.01" placeholder="Prețul la care ai cumpărat"/>
@@ -1217,7 +1138,6 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <label class="field-label" style="margin:0;">Substanțe utilizate</label>
           <div style="display:flex;gap:5px;">
-            <button class="btn btn-sm btn-gray" onclick="openSeedConverter()" title="Conversie kg/saci → plante/ha">🌱 Convertor sămânță</button>
             <button class="btn btn-sm btn-green" onclick="addSubstanceRow()">+ Adaugă</button>
           </div>
         </div>
@@ -1548,6 +1468,168 @@ function onUserLoggedIn(user) {
 }
 
 
+function renderSettings() {
+  const root = document.getElementById('settings-content');
+  if (!root) return;
+
+  if (state.workTypes) state.workTypes = state.workTypes.map(w => typeof w === 'string' ? {name:w,norm:0} : w);
+  if (!state.implementPresets) state.implementPresets = {};
+
+  const f = state.farmer || {};
+  const tractors = state.machinery.filter(m=>m.type==='tractor');
+  const implements_ = state.machinery.filter(m=>m.type==='implement');
+
+  let html = '';
+
+  // DATE FERMIER
+  html += '<div class="culture-manager-box">'
+    + '<span style="font-size:11px;font-weight:800;color:var(--green);letter-spacing:.06em;display:block;margin-bottom:12px;">&#128100; DATE FERMIER</span>'
+    + '<div style="display:flex;flex-direction:column;gap:8px;">'
+    + '<div class="two-col">'
+      + '<div><label class="field-label">Nume</label><input class="field-input" id="farmer-name" value="'+(f.name||'')+'" placeholder="Ion Popescu" style="background:#fff;"/></div>'
+      + '<div><label class="field-label">CNP / CIF</label><input class="field-input" id="farmer-cnp" value="'+(f.cnp||'')+'" placeholder="1234567890123" style="background:#fff;"/></div>'
+    + '</div>'
+    + '<div class="two-col">'
+      + '<div><label class="field-label">Localitate</label><input class="field-input" id="farmer-city" value="'+(f.city||'')+'" style="background:#fff;"/></div>'
+      + '<div><label class="field-label">Județ</label><input class="field-input" id="farmer-county" value="'+(f.county||'')+'" style="background:#fff;"/></div>'
+    + '</div>'
+    + '<div><label class="field-label">Adresă</label><input class="field-input" id="farmer-address" value="'+(f.address||'')+'" style="background:#fff;"/></div>'
+    + '<div class="two-col">'
+      + '<div><label class="field-label">Telefon</label><input class="field-input" id="farmer-phone" value="'+(f.phone||'')+'" style="background:#fff;"/></div>'
+      + '<div><label class="field-label">Cod APIA</label><input class="field-input" id="farmer-apia" value="'+(f.apia||'')+'" style="background:#fff;"/></div>'
+    + '</div>'
+    + '<div><label class="field-label">IBAN</label><input class="field-input" id="farmer-iban" value="'+(f.iban||'')+'" style="background:#fff;"/></div>'
+    + '<button class="btn btn-green" onclick="saveFarmerProfile()" style="margin-top:4px;">&#128190; Salveaz&#259; date fermier</button>'
+    + '</div></div>';
+
+  // CULTURI
+  const cultureRows = Object.entries(state.cultures||{}).map(function(kv) {
+    const name = kv[0], color = kv[1];
+    const esc = name.replace(/'/g,"\\'");
+    return '<div class="culture-item-row">'
+      + '<div style="display:flex;align-items:center;gap:8px;">'
+        + '<span style="width:14px;height:14px;background:'+color+';border-radius:3px;display:inline-block;flex-shrink:0;"></span>'
+        + '<strong style="font-size:13px;">'+name+'</strong>'
+      + '</div>'
+      + '<div style="display:flex;gap:4px;">'
+        + '<input type="color" value="'+color+'" style="width:28px;height:28px;border:none;border-radius:4px;cursor:pointer;padding:1px;" onchange="state.cultures[\''+esc+'\']=this.value;save();renderSettings();">'
+        + '<button class="btn btn-sm btn-red" onclick="deleteCulture(\''+esc+'\')">&#x1F5D1;</button>'
+      + '</div></div>';
+  }).join('');
+  html += '<div class="culture-manager-box">'
+    + '<span style="font-size:11px;font-weight:800;color:var(--green);letter-spacing:.06em;display:block;margin-bottom:8px;">&#127807; CULTURI</span>'
+    + '<div id="custom-cultures-list">'+cultureRows+'</div>'
+    + '<div style="display:flex;gap:6px;margin-top:8px;">'
+      + '<input type="text" class="field-input" id="new-culture-name" placeholder="Cultur&#259; nou&#259;..." style="flex:1;background:#fff;"/>'
+      + '<input type="color" id="new-culture-color" value="#22c55e" style="width:36px;height:36px;border:none;border-radius:6px;cursor:pointer;padding:2px;"/>'
+      + '<button class="btn btn-sm btn-green" onclick="addCulture()">+ Ad&#259;ug&#259;</button>'
+    + '</div></div>';
+
+  // CATEGORII PRODUSE
+  const catRows = (state.productCategories||[]).map(function(c) {
+    return '<div class="culture-item-row"><span style="font-size:13px;">'+c+'</span>'
+      + '<button class="btn btn-sm btn-red" onclick="deleteProductCategory(\''+c.replace(/'/g,"\\'")+'\')">&#x1F5D1;</button></div>';
+  }).join('');
+  html += '<div class="culture-manager-box">'
+    + '<span style="font-size:11px;font-weight:800;color:var(--blue);letter-spacing:.06em;display:block;margin-bottom:8px;">&#128230; CATEGORII PRODUSE</span>'
+    + '<div id="prodcat-list">'+catRows+'</div>'
+    + '<div style="display:flex;gap:6px;margin-top:8px;">'
+      + '<input type="text" class="field-input" id="new-prodcat-name" placeholder="Categorie nou&#259;..." style="flex:1;background:#fff;"/>'
+      + '<button class="btn btn-sm btn-blue" onclick="addProductCategory()">+ Ad&#259;ug&#259;</button>'
+    + '</div></div>';
+
+  // UNITATI
+  const unitRows = (state.productUnits||[]).map(function(u) {
+    return '<div class="culture-item-row"><span style="font-size:13px;">'+u+'</span>'
+      + '<button class="btn btn-sm btn-red" onclick="deleteProductUnit(\''+u.replace(/'/g,"\\'")+'\')">&#x1F5D1;</button></div>';
+  }).join('');
+  html += '<div class="culture-manager-box">'
+    + '<span style="font-size:11px;font-weight:800;color:var(--purple);letter-spacing:.06em;display:block;margin-bottom:8px;">&#128207; UNIT&#258;&#538;I M&#258;SUR&#258;</span>'
+    + '<div id="produnit-list">'+unitRows+'</div>'
+    + '<div style="display:flex;gap:6px;margin-top:8px;">'
+      + '<input type="text" class="field-input" id="new-produnit-name" placeholder="Unitate nou&#259;..." style="flex:1;background:#fff;"/>'
+      + '<button class="btn btn-sm" style="border-color:var(--purple);color:var(--purple);" onclick="addProductUnit()">+ Ad&#259;ug&#259;</button>'
+    + '</div></div>';
+
+  // MOTORINA
+  html += '<div class="culture-manager-box">'
+    + '<span style="font-size:11px;font-weight:800;color:var(--orange);letter-spacing:.06em;display:block;margin-bottom:8px;">&#9981; MOTORING</span>'
+    + '<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;">'
+      + '<input type="number" class="field-input" id="diesel-price-input" step="0.01" value="'+(state.dieselPrice||DEFAULT_DIESEL_PRICE)+'" style="flex:1;background:#fff;" placeholder="lei/litru"/>'
+      + '<span style="font-size:12px;color:var(--muted);white-space:nowrap;">lei / litru</span>'
+      + '<button class="btn btn-sm btn-orange" onclick="saveDieselPrice()">Salveaz&#259;</button>'
+    + '</div>'
+    + '<div style="display:flex;gap:10px;align-items:center;">'
+      + '<input type="number" class="field-input" id="diesel-norm-input" step="0.1" value="'+(state.dieselNorm||'')+'" style="flex:1;background:#fff;" placeholder="ex: 12"/>'
+      + '<span style="font-size:12px;color:var(--muted);white-space:nowrap;">L / ha norm&#259;</span>'
+      + '<button class="btn btn-sm btn-orange" onclick="saveDieselNorm()">Salveaz&#259;</button>'
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--muted);margin-top:6px;" id="diesel-price-note"></div>'
+    + '</div>';
+
+  // TIPURI LUCRARI
+  const wtRows = state.workTypes.map(function(wt) {
+    const name = wtName(wt), norm = wtNorm(wt);
+    const preset = state.implementPresets[name]||{};
+    const implId = typeof preset==='string'?preset:(preset.implementId||'');
+    const tractId = typeof preset==='object'?(preset.tractorId||''):'';
+    const iN = implId?(state.machinery.find(function(m){return m.id===implId;})||{}).name:'';
+    const tN = tractId?(state.machinery.find(function(m){return m.id===tractId;})||{}).name:'';
+    let badges = '';
+    if (norm>0) badges += '<span style="font-size:10px;color:var(--orange);background:#fff7ed;padding:1px 6px;border-radius:8px;border:1px solid var(--orange);">&#9981;'+norm+'L/ha</span> ';
+    if (tN) badges += '<span style="font-size:10px;color:var(--blue);background:#eff6ff;padding:1px 6px;border-radius:8px;">&#128668;'+tN+'</span> ';
+    if (iN) badges += '<span style="font-size:10px;color:var(--purple);background:#faf5ff;padding:1px 6px;border-radius:8px;">&#9881;'+iN+'</span>';
+    const esc = name.replace(/'/g,"\\'");
+    return '<div style="background:var(--surface2);border:1px solid var(--border-light);border-radius:8px;padding:8px 10px;margin-bottom:6px;">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;">'
+        + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><strong style="font-size:13px;">'+name+'</strong>'+badges+'</div>'
+        + '<div style="display:flex;gap:4px;">'
+          + '<button class="btn btn-sm btn-gray" onclick="startEditWorkType(\''+esc+'\')" style="padding:2px 8px;">&#9998;</button>'
+          + '<button class="btn btn-sm btn-red" onclick="deleteWorkType(\''+esc+'\')" style="padding:2px 8px;">&#x1F5D1;</button>'
+        + '</div>'
+      + '</div></div>';
+  }).join('');
+  html += '<div class="culture-manager-box">'
+    + '<span style="font-size:11px;font-weight:800;color:var(--teal);letter-spacing:.06em;display:block;margin-bottom:8px;">&#128668; TIPURI LUCR&#258;RI</span>'
+    + '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Seteaz&#259; norm&#259; motoring, tractor &#537;i implement implicit per tip.</div>'
+    + '<div style="display:flex;gap:6px;margin-bottom:10px;">'
+      + '<input type="text" class="field-input" id="new-worktype-name" placeholder="Tip lucrare nou&#259;..." style="flex:1;background:#fff;"/>'
+      + '<button class="btn btn-sm" style="border-color:var(--teal);color:var(--teal);background:#f0fdfa;" onclick="addWorkType()">+ Ad&#259;ug&#259;</button>'
+    + '</div>'
+    + '<div id="worktype-list">'+wtRows+'</div>'
+    + '</div>';
+
+  // ANI AGRICOLI
+  const yearRows = state.years.map(function(y) {
+    const isAct = y.id === state.activeYear;
+    return '<div class="culture-item-row">'
+      + '<div style="display:flex;align-items:center;gap:8px;">'
+        + '<span style="font-size:13px;font-weight:'+(isAct?800:600)+';">'+y.name+'</span>'
+        + (isAct?'<span style="font-size:10px;background:var(--green-soft);color:var(--green);padding:1px 6px;border-radius:8px;">Activ</span>':'')
+      + '</div>'
+      + '<div style="display:flex;gap:4px;">'
+        + (!isAct?'<button class="btn btn-sm btn-green" onclick="switchYear(\''+y.id+'\')">Activeaz&#259;</button>':'')
+        + '<button class="btn btn-sm btn-red" onclick="deleteAgriYear(\''+y.id+'\')">&#x1F5D1;</button>'
+      + '</div></div>';
+  }).join('');
+  html += '<div class="culture-manager-box">'
+    + '<span style="font-size:11px;font-weight:800;color:var(--amber);letter-spacing:.06em;display:block;margin-bottom:8px;">&#128197; ANI AGRICOLI</span>'
+    + '<div id="year-list">'+yearRows+'</div>'
+    + '<div style="display:flex;gap:6px;margin-top:8px;">'
+      + '<input type="text" class="field-input" id="new-year-name" placeholder="ex: 2025-2026" style="flex:1;background:#fff;"/>'
+      + '<button class="btn btn-sm" style="border-color:var(--amber);color:var(--amber);" onclick="addAgriYear()">+ Ad&#259;ug&#259;</button>'
+    + '</div></div>';
+
+  if (state.fields.length) {
+    html += '<div style="text-align:center;padding:8px;">'
+      + '<button class="btn btn-red" id="btn-reset-settings" onclick="resetAll()">&#x1F5D1; Reseteaz&#259; toate datele</button>'
+      + '</div>';
+  }
+
+  root.innerHTML = html;
+}
+
+
 function saveFarmerProfile() {
   state.farmer = {
     name: document.getElementById('farmer-name').value.trim(),
@@ -1583,6 +1665,7 @@ function saveDieselNorm() {
 }
 
 function saveDieselPrice() {
+  const val = Number(document.getElementById('diesel-price-input').value);
   if (!val || val <= 0) return;
   state.dieselPrice = val;
   save();
@@ -1594,9 +1677,9 @@ function initApp() {
   initTheme();
   initMap();
   renderAll();
-  renderCulturesPanel();
-  renderProductCategoriesPanel();
-  renderProductUnitsPanel();
+  if(currentView==="settings") renderSettings();
+  if(currentView==="settings") renderSettings();
+  if(currentView==="settings") renderSettings();
   renderWorkTypesPanel();
   populateProdCatSelect();
   populateProdUnitSelect();
@@ -1708,21 +1791,7 @@ function switchView(view) {
     else if (view === 'harvest') { renderHarvestView(); }
     else if (view === 'costs') renderCostsView();
     else if (view === 'settings') {
-      // migrare workTypes dacă sunt strings
-      if (state.workTypes) state.workTypes = state.workTypes.map(w => typeof w === 'string' ? {name:w,norm:0} : w);
-      if (!state.implementPresets) state.implementPresets = {};
-
-      try { renderCulturesPanel(); } catch(e) { console.error('renderCulturesPanel:', e); }
-      try { renderProductCategoriesPanel(); } catch(e) { console.error('renderProductCategoriesPanel:', e); }
-      try { renderProductUnitsPanel(); } catch(e) { console.error('renderProductUnitsPanel:', e); }
-      try { renderWorkTypesPanel(); } catch(e) { console.error('renderWorkTypesPanel:', e); }
-      try { renderYearList(); } catch(e) { console.error('renderYearList:', e); }
-      const dpInput = document.getElementById('diesel-price-input');
-      if (dpInput) dpInput.value = state.dieselPrice || DEFAULT_DIESEL_PRICE;
-      const dnInput = document.getElementById('diesel-norm-input');
-      if (dnInput) dnInput.value = state.dieselNorm || '';
-      try { loadFarmerProfile(); } catch(e) { console.error('loadFarmerProfile:', e); }
-      const br = document.getElementById('btn-reset-settings'); if(br) br.style.display = state.fields.length ? 'block' : 'none';
+      renderSettings();
     }
   }
 }
@@ -1772,7 +1841,7 @@ function addNewCustomCulture() {
   state.cultures[name] = colorInput.value;
   save();
   input.value = '';
-  renderCulturesPanel();
+  if(currentView==="settings") renderSettings();
   renderAll();
 }
 
@@ -1787,7 +1856,7 @@ function deleteCustomCulture(crop) {
   const fallbackCrop = remaining[0] || '';
   const fallbackColor = fallbackCrop ? state.cultures[fallbackCrop] : '#64748b';
   affectedFields.forEach(f => { f.crop = fallbackCrop; f.color = fallbackColor; });
-  save(); renderCulturesPanel(); renderAll();
+  save(); renderSettings(); renderAll();
 }
 
 function startEditCulture(crop) {
@@ -1844,7 +1913,7 @@ function saveEditCulture(oldCrop) {
       }
     });
   });
-  save(); renderCulturesPanel(); renderAll();
+  save(); renderSettings(); renderAll();
 }
 
 function startEditProductCategory(cat) {
@@ -1884,7 +1953,7 @@ function saveEditProductCategory(oldCat) {
   if (newName !== oldCat && state.productCategories.includes(newName)) { alert('Există deja această categorie.'); return; }
   state.productCategories = state.productCategories.map(c => c === oldCat ? newName : c);
   state.products.forEach(p => { if (p.category === oldCat) p.category = newName; });
-  save(); renderProductCategoriesPanel(); populateProdCatSelect();
+  save(); if(currentView==="settings") renderSettings(); populateProdCatSelect();
 }
 
 function startEditProductUnit(unit) {
@@ -1924,7 +1993,7 @@ function saveEditProductUnit(oldUnit) {
   if (newName !== oldUnit && state.productUnits.includes(newName)) { alert('Există deja această unitate.'); return; }
   state.productUnits = state.productUnits.map(u => u === oldUnit ? newName : u);
   state.products.forEach(p => { if (p.unit === oldUnit) p.unit = newName; });
-  save(); renderProductUnitsPanel(); populateProdUnitSelect();
+  save(); if(currentView==="settings") renderSettings(); populateProdUnitSelect();
 }
 
 function populateCropDropdowns() {
@@ -1994,13 +2063,13 @@ function addWorkType() {
   if (!name || state.workTypes.find(w => wtName(w) === name)) return;
   state.workTypes.push({name, norm: 0});
   save(); input.value = '';
-  renderWorkTypesPanel(); populateWorkTypeSelect();
+  if(currentView==="settings") renderSettings(); populateWorkTypeSelect();
 }
 
 function deleteWorkType(wt) {
   if (!confirm('Stergi tipul "' + wt + '"?')) return;
   state.workTypes = state.workTypes.filter(w => wtName(w) !== wt);
-  save(); renderWorkTypesPanel(); populateWorkTypeSelect();
+  save(); if(currentView==="settings") renderSettings(); populateWorkTypeSelect();
 }
 
 function startEditWorkType(wt) {
@@ -2066,7 +2135,7 @@ function saveEditWorkType(oldWt) {
   if (newTractId || newImplId) { state.implementPresets[newName] = {tractorId: newTractId, implementId: newImplId}; }
   else { delete state.implementPresets[newName]; }
   if (newName !== oldWt) delete state.implementPresets[oldWt];
-  save(); renderWorkTypesPanel(); populateWorkTypeSelect();
+  save(); if(currentView==="settings") renderSettings(); populateWorkTypeSelect();
 }
 
 // mapare tip lucrare → categorii produse relevante
@@ -2234,11 +2303,32 @@ function setWorkTypeChips(types) {
 // ─── SUBSTANȚE MULTIPLE ───────────────────────────────────────────────────────
 let substanceRows = [];
 
+function onSubstProdChange(rowId) {
+  const prodId = document.getElementById('subst-prod-' + rowId)?.value;
+  const p = state.products.find(x => x.id === prodId);
+  if (p && p.plantsPerUnit > 0) {
+    // e sămânță cu plante/sac definite — afișăm info
+    const doseEl = document.getElementById('subst-dose-' + rowId);
+    const infoEl = document.getElementById('subst-seed-info-' + rowId);
+    if (infoEl) {
+      infoEl.textContent = p.plantsPerUnit.toLocaleString('ro-RO') + ' plante/sac'
+        + (p.germination > 0 ? ' · ' + p.germination + '% germinație' : '');
+      infoEl.style.display = '';
+    }
+    // pre-completăm doza cu plantele/ha pentru 1 sac dacă e goală
+    if (doseEl && !doseEl.value) {
+      const germ = p.germination > 0 ? p.germination/100 : 1;
+      doseEl.value = Math.round(p.plantsPerUnit * germ);
+    }
+  } else {
+    const infoEl = document.getElementById('subst-seed-info-' + rowId);
+    if (infoEl) infoEl.style.display = 'none';
+  }
+  filterSubstancesByWorkType();
+  updateTreatCalc();
+}
 function addSubstanceRow(prodId = null, dose = '', area = '') {
   const id = gid();
-  substanceRows.push(id);
-  const container = document.getElementById('substances-list'); if (!container) return;
-  // folosim produsele combinate din toate tipurile selectate
   let products;
   if (selectedWorkTypes.size === 0) {
     products = state.products;
@@ -2258,7 +2348,8 @@ function addSubstanceRow(prodId = null, dose = '', area = '') {
     </div>
     <div style="margin-bottom:8px;">
       <label class="field-label">Produs</label>
-      <select class="field-input" id="subst-prod-${id}" onchange="updateTreatCalc()">${opts.length ? opts : '<option value="">— Niciun produs în magazie —</option>'}</select>
+      <select class="field-input" id="subst-prod-${id}" onchange="onSubstProdChange('${id}')">${opts.length ? opts : '<option value="">— Niciun produs în magazie —</option>'}</select>
+      <div id="subst-seed-info-${id}" style="display:none;font-size:10px;color:var(--green);background:var(--green-soft);border-radius:5px;padding:2px 7px;margin-top:3px;"></div>
     </div>
     <div class="two-col">
       <div><label class="field-label">Doză / ha</label><input type="number" class="field-input" id="subst-dose-${id}" value="${dose}" step="0.01" placeholder="0" oninput="updateTreatCalc()"/></div>
@@ -3347,7 +3438,7 @@ function addProductCategory() {
   if (state.productCategories.includes(name)) return;
   state.productCategories.push(name);
   save(); input.value = '';
-  renderProductCategoriesPanel();
+  if(currentView==="settings") renderSettings();
   populateProdCatSelect();
 }
 
@@ -3357,7 +3448,7 @@ function deleteProductCategory(cat) {
   if (!inUse && !confirm(`Ștergi categoria "${cat}"?`)) return;
   state.productCategories = state.productCategories.filter(c => c !== cat);
   save();
-  renderProductCategoriesPanel();
+  if(currentView==="settings") renderSettings();
   populateProdCatSelect();
 }
 
@@ -3405,7 +3496,7 @@ function addProductUnit() {
   if (state.productUnits.includes(name)) return;
   state.productUnits.push(name);
   save(); input.value = '';
-  renderProductUnitsPanel();
+  if(currentView==="settings") renderSettings();
   populateProdUnitSelect();
 }
 
@@ -3415,13 +3506,13 @@ function deleteProductUnit(unit) {
   if (!inUse && !confirm(`Ștergi unitatea "${unit}"?`)) return;
   state.productUnits = state.productUnits.filter(u => u !== unit);
   save();
-  renderProductUnitsPanel();
+  if(currentView==="settings") renderSettings();
   populateProdUnitSelect();
 }
 
 function renderProductsView() {
-  renderProductCategoriesPanel();
-  renderProductUnitsPanel();
+  if(currentView==="settings") renderSettings();
+  if(currentView==="settings") renderSettings();
   populateProdCatSelect();
   populateProdUnitSelect();
   const root = document.getElementById('products-list'); if(!root) return; root.innerHTML = '';
@@ -3467,7 +3558,8 @@ function openProductForm() {
   populateProdUnitSelect();
   ['prod-name','prod-stock','prod-price','prod-buy-price',
    'prod-n','prod-p','prod-k','prod-s','prod-ca','prod-mg',
-   'prod-dose-min','prod-dose-max','prod-active-subst'].forEach(id => {
+   'prod-dose-min','prod-dose-max','prod-active-subst',
+   'prod-plants-per-unit','prod-germination'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
   const aiRes = document.getElementById('ai-search-result');
@@ -3484,10 +3576,14 @@ function updateProductSections() {
   const cat = (document.getElementById('prod-cat').value || '').toLowerCase();
   const fertCats = ['îngrășământ','ingrasamant','fertiliz','ngr'];
   const pestCats = ['erbicid','fungicid','insecticid','regulator','pesticid'];
+  const seedCats = ['sămânță','samanta','seminta','seed'];
   const isFert = fertCats.some(c => cat.includes(c));
   const isPest = pestCats.some(c => cat.includes(c));
+  const isSeed = seedCats.some(c => cat.includes(c));
   document.getElementById('prod-npk-section').style.display = isFert ? '' : 'none';
   document.getElementById('prod-pest-section').style.display = isPest ? '' : 'none';
+  const seedSec = document.getElementById('prod-seed-section');
+  if (seedSec) seedSec.style.display = isSeed ? '' : 'none';
 }
 function editProduct(id) {
   const p = state.products.find(function(x){return x.id===id;}); if(!p) return;
@@ -3508,6 +3604,10 @@ function editProduct(id) {
   document.getElementById('prod-mg').value = p.mg||'';
   // Pesticide
   document.getElementById('prod-dose-min').value = p.doseMin||'';
+  document.getElementById('prod-dose-max').value = p.doseMax||'';
+  document.getElementById('prod-active-subst').value = p.activeSubst||'';
+  document.getElementById('prod-plants-per-unit').value = p.plantsPerUnit||'';
+  document.getElementById('prod-germination').value = p.germination||'';
   document.getElementById('prod-dose-max').value = p.doseMax||'';
   document.getElementById('prod-active-subst').value = p.activeSubst||'';
   document.getElementById('prod-edit-id').value = id;
@@ -3538,7 +3638,9 @@ function saveProduct() {
     // Pesticide
     doseMin:Number(document.getElementById('prod-dose-min').value)||0,
     doseMax:Number(document.getElementById('prod-dose-max').value)||0,
-    activeSubst:document.getElementById('prod-active-subst').value.trim()
+    activeSubst:document.getElementById('prod-active-subst').value.trim(),
+    plantsPerUnit:Number(document.getElementById('prod-plants-per-unit').value)||0,
+    germination:Number(document.getElementById('prod-germination').value)||0,
   };
 
   if (editId) {
@@ -5285,7 +5387,7 @@ function saveEditYear(id) {
   if (state.years.find(y => y.name === newName && y.id !== id)) { alert('Există deja un an cu acest nume.'); return; }
   const y = state.years.find(x => x.id === id); if (!y) return;
   y.name = newName;
-  save(); renderYearList(); renderYearSelector();
+  save(); if(currentView==="settings") renderSettings(); renderYearSelector();
 }
 
 function addAgriYear() {
@@ -5311,13 +5413,13 @@ function addAgriYear() {
   state.yearData[newId] = { crops: newCrops, treatments: [], tasks: [], activeFields: newActiveFields };
   state.activeYear = newId;
   save(); input.value = '';
-  renderYearList(); renderYearSelector(); renderAll(); updateHeaderStats();
+  if(currentView==="settings") renderSettings(); renderYearSelector(); renderAll(); updateHeaderStats();
   alert(`Anul "${name}" a fost creat cu culturile propuse din sezonul precedent. Verifică și modifică în fișa fiecărei parcele.`);
 }
 
 function setActiveYear(id) {
   state.activeYear = id;
-  save(); renderYearList(); renderYearSelector();
+  save(); if(currentView==="settings") renderSettings(); renderYearSelector();
   updateHeaderStats();
   if (currentView === 'costs') renderCostsView();
 }
@@ -5342,7 +5444,7 @@ function deleteAgriYear(id) {
   delete state.yearData[id];
   if (state.harvests) delete state.harvests[id];
   if (state.activeYear === id) state.activeYear = state.years[0]?.id || null;
-  save(); renderYearList(); renderYearSelector(); renderAll(); updateHeaderStats();
+  save(); if(currentView==="settings") renderSettings(); renderYearSelector(); renderAll(); updateHeaderStats();
   if (currentView === 'costs') renderCostsView();
 }
 
